@@ -113,10 +113,25 @@ export const ObjetoCena = z.object({
   visivel: z.boolean().default(true),
 });
 
+export const ChaveObjeto = z.object({
+  objeto_id: z.string(),
+  propriedade: z.enum(["posicao", "rotacao_graus", "escala"]),
+  quadro: z.number().int().min(0),
+  valor: Vetor3,
+  interpolacao: z.enum(["linear", "suave", "constante"]).default("linear"),
+});
+
+export const AnimacaoCena = z.object({
+  fps: z.number().int().min(1).max(60).default(24),
+  duracao_quadros: z.number().int().min(1).max(600).default(48),
+  chaves: z.array(ChaveObjeto).default([]),
+});
+
 export const Cena = z.object({
   id: z.string(),
   nome: z.string(),
   objetos: z.array(ObjetoCena),
+  animacao: AnimacaoCena.optional(),
   criada_em: z.string(),
   atualizada_em: z.string(),
 });
@@ -127,3 +142,5 @@ export type Origem = z.output<typeof Origem>;
 export type Material = z.output<typeof Material>;
 export type ObjetoCena = z.output<typeof ObjetoCena>;
 export type Cena = z.output<typeof Cena>;
+export type ChaveObjeto = z.output<typeof ChaveObjeto>;
+export type AnimacaoCena = z.output<typeof AnimacaoCena>;

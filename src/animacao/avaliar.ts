@@ -1,9 +1,12 @@
 import type { Chave, Desenho, Elemento } from "../desenho2d/tipos.js";
 
+/** Ponto de controle de uma propriedade numérica: valor em um quadro com a regra de interpolação até o próximo.*/
+export type PontoAnimado = Pick<Chave, "quadro" | "valor" | "interpolacao">;
+
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
 /** Valor de uma propriedade no quadro, interpolando entre os keyframes vizinhos. */
-function valorNoQuadro(chaves: Chave[], quadro: number): number {
+export function valorNoQuadro(chaves: PontoAnimado[], quadro: number): number {
   // chaves já vêm ordenadas por quadro
   const anterior = [...chaves].reverse().find((c) => c.quadro <= quadro);
   const proxima = chaves.find((c) => c.quadro > quadro);

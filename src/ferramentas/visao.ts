@@ -26,10 +26,11 @@ export const ferramentasVisao = [
       camera: z.enum(["frente", "topo", "lado", "isometrica"]).default("isometrica"),
       largura: z.number().int().min(200).max(1600).default(800),
       altura: z.number().int().min(200).max(1600).default(600),
+      quadro: z.number().int().min(0).max(599).optional().describe("Quadro da animação a mostrar (sem ele, a pose do quadro 0)"),
     },
     executar: async (a) => {
       const cena = await carregarCena(a.cena_id);
-      const r = await renderizarCena(cena, a.camera, a.largura, a.altura);
+      const r = await renderizarCena(cena, a.camera, a.largura, a.altura, a.quadro);
       return [
         { type: "image", data: r.png.toString("base64"), mimeType: "image/png" },
         { type: "text", text: `Cena ${cena.id} (${cena.nome}), câmera ${r.camera}, ${r.largura}x${r.altura}` },

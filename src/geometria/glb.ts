@@ -7,6 +7,17 @@ export interface MalhaGlb {
   geometria: THREE.BufferGeometry;
   material: Material;
   imagem?: { mime: "image/png" | "image/jpeg"; dados: Buffer; escala: number };
+  /** Pose inicial do nó: posição, quaternion (x, y, z, w) e escala. Geometria fica em coordenadas locais. */
+  pose?: { posicao: number[]; quaternion: number[]; escala: number[] };
+  /** Canais de animação: uma sequência de valores por quadro (um valor por quadro, sem pular quadros). */
+  trilhas?: { caminho: "translation" | "rotation" | "scale"; valores: number[] }[];
+}
+
+export interface OpcoesGlb {
+  /** Nó raiz com escala e translação, aplicado a todas as malhas. */
+  raiz?: { escala: number; translacao: [number, number, number] };
+  /** Animação: taxa de quadros e número de quadros das trilhas. */
+  animacao?: { fps: number; quadros: number };
 }
 
 const FLOAT = 5126;
@@ -31,7 +42,7 @@ function alinhar4(n: number): number {
  * Escreve um arquivo GLB (glTF 2.0 binário) com malhas, materiais PBR e texturas embutidas.
  * Escrito à mão para não depender de canvas, FileReader ou DOM no ambiente serverless.
  */
-export function gerarGlb(malhas: MalhaGlb[]): Buffer {
+export function gerarGlb(malhas: MalhaGlb[], opcoes: OpcoesGlb = {}): Buffer {
   if (malhas.length === 0) throw new Error("Nenhuma malha visível para exportar");
 
   const partes: Buffer[] = [];
@@ -145,14 +156,59 @@ export function gerarGlb(malhas: MalhaGlb[]): Buffer {
         },
       ],
     });
-    nodes.push({ name: malha.nome, mesh: meshes.length - 1 });
+    const no: Record<string, unknown> = { name: malha.nome, mesh: meshes.length - 1 };
+    if (malha.pose) {
+      no.translation = malha.pose.posicao;
+      no.rotation = malha.pose.quaternion;
+      no.scale = malha.pose.escala;
+    }
+    nodes.push(no);
+  }
+
+  // Raiz opcional: escala e posição do conjunto inteiro (usada na exportação em outra escala ou sobre o chão).
+  let raizNodes = nodes.map((_, i) => i);
+  if (opcoes.raiz) {
+    const e = opcoes.raiz.escala;
+    nodes.push({
+      name: "raiz",
+      scale: [e, e, e],
+      translation: opcoes.raiz.translacao,
+      children: malhas.map((_, i) => i),
+    });
+    raizNodes = [nodes.length - 1];
+  }
+
+  // Animação: um tempo por quadro, compartilhado por todos os canais.
+  const animacoes: Record<string, unknown>[] = [];
+  if (opcoes.animacao) {
+    const { fps, quadros } = opcoes.animacao;
+    const tempos = Float32Array.from({ length: quadros }, (_, i) => i / fps);
+    const viewTempos = adicionarDados(Buffer.from(tempos.buffer));
+    const accTempos = adicionarAcessor(viewTempos, FLOAT, quadros, "SCALAR", {
+      min: [tempos[0]],
+      max: [tempos[quadros - 1]],
+    });
+    malhas.forEach((malha, indice) => {
+      if (!malha.trilhas?.length) return;
+      const samplers: Record<string, unknown>[] = [];
+      const channels: Record<string, unknown>[] = [];
+      for (const trilha of malha.trilhas) {
+        const valores = Float32Array.from(trilha.valores);
+        const viewValores = adicionarDados(Buffer.from(valores.buffer));
+        const tipo = trilha.caminho === "rotation" ? "VEC4" : "VEC3";
+        const accValores = adicionarAcessor(viewValores, FLOAT, quadros, tipo);
+        samplers.push({ input: accTempos, output: accValores, interpolation: "LINEAR" });
+        channels.push({ sampler: samplers.length - 1, target: { node: indice, path: trilha.caminho } });
+      }
+      animacoes.push({ name: malha.nome, samplers, channels });
+    });
   }
 
   const binario = Buffer.concat(partes);
   const json: Record<string, unknown> = {
     asset: { version: "2.0", generator: "bender-3d-mcp" },
     scene: 0,
-    scenes: [{ nodes: nodes.map((_, i) => i) }],
+    scenes: [{ nodes: raizNodes }],
     nodes,
     meshes,
     accessors,
@@ -160,6 +216,7 @@ export function gerarGlb(malhas: MalhaGlb[]): Buffer {
     materials: materiais,
     buffers: [{ byteLength: binario.length }],
   };
+  if (animacoes.length > 0) json.animations = animacoes;
   if (imagens.length > 0) {
     for (const t of texturas) t.sampler = 0;
     json.images = imagens;

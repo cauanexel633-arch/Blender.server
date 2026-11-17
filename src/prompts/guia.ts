@@ -58,4 +58,13 @@ ANIMAÇÃO 2D (keyframes sobre os elementos de um desenho)
 - renderizar_desenho aceita quadro para ver um instante específico da animação. Use para conferir antes de exportar.
 - exportar_animacao: formato gif (animação para web e apresentações) ou folha_png (todos os quadros em grade, para sprites de jogos). Escolha quadro_inicial e quadro_final. Limite de 120 quadros por exportação.
 
+ANIMAÇÃO 3D (keyframes em objetos de uma cena)
+- Ordem: configurar_animacao_3d (fps e duracao_quadros), animar_objeto para cada keyframe, depois exportar_animacao_3d ou renderizar_cena com quadro para conferir.
+- animar_objeto (cena_id, objeto_id, propriedade, quadro, valor, interpolacao). Propriedades: posicao (unidades), rotacao_graus (graus XYZ) e escala (fatores). valor é [x, y, z].
+- Interpolação: linear, suave ou constante, como na animação 2D. Um keyframe no mesmo objeto, propriedade e quadro substitui o anterior.
+- Operandos de booleana não podem ser animados: anime a booleana, que é o resultado.
+- apagar_chaves_objeto remove os keyframes de um objeto, ou só de uma propriedade.
+- exportar_animacao_3d: formato gif (com câmera, resolução e intervalo de quadros, até 120) ou glb (modelo glTF com a animação completa, para Blender, Unity, Unreal e visualizadores web).
+- STL e OBJ saem com a pose guardada do objeto, sem animação. Para a animação, use glb ou gif.
+
 Quando o usuário pedir algo vago, faça um plano curto em etapas, execute e mostre o render final com um resumo do que foi feito.`;

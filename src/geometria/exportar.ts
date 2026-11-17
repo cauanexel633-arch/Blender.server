@@ -1,9 +1,10 @@
-import type * as THREE from "three";
+import * as THREE from "three";
+import { LIMITE_AMOSTRAS, poseNoQuadro, propriedadesAnimadas, temAnimacao } from "../animacao/cena3d.js";
 import { construirGeometriaObjeto } from "./construir.js";
 import { gerarGlb, type MalhaGlb } from "./glb.js";
 import { gerarTexturaPng } from "./png.js";
 import { baixarImagem } from "../web/busca.js";
-import type { Cena, Material, ObjetoCena } from "./tipos.js";
+import type { Cena, Material, ObjetoCena, Transformacao } from "./tipos.js";
 
 export interface MalhaCena {
   nome: string;
@@ -131,6 +132,7 @@ async function resolverImagem(material: Material): Promise<MalhaGlb["imagem"]> {
 }
 
 export async function gerarGlbDaCena(cena: Cena, opcoes: OpcoesExportacao = OPCOES_PADRAO): Promise<Buffer> {
+  if (temAnimacao(cena)) return gerarGlbAnimadoDaCena(cena, opcoes);
   const prontas: MalhaGlb[] = [];
   for (const m of malhasParaExportar(cena, opcoes)) {
     prontas.push({ nome: m.nome, geometria: m.geometria, material: m.material, imagem: await resolverImagem(m.material) });
@@ -286,4 +288,67 @@ export function gerarObj(cena: Cena, opcoes: OpcoesExportacao = OPCOES_PADRAO): 
     base += n;
   }
   return linhas.join("\n") + "\n";
+}
+
+const IDENTIDADE: Transformacao = { posicao: [0, 0, 0], rotacao_graus: [0, 0, 0], escala: [1, 1, 1] };
+
+/** Graus em ordem XYZ para quaternion (x, y, z, w), o formato de rotação do glTF. */
+function quaternionDeGraus(graus: number[]): number[] {
+  const [x, y, z] = graus.map((g) => THREE.MathUtils.degToRad(g));
+  const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z, "XYZ"));
+  return [q.x, q.y, q.z, q.w];
+}
+
+/**
+ * GLB com animação. Cada objeto vira um nó com geometria em coordenadas locais; a pose
+ * (posição, rotação e escala) fica no nó e é amostrada quadro a quadro. Assim o arquivo
+ * toca em qualquer visualizador glTF. Booleanas são animadas pelo resultado, e não pelos operandos.
+ */
+async function gerarGlbAnimadoDaCena(cena: Cena, opcoes: OpcoesExportacao): Promise<Buffer> {
+  const animacao = cena.animacao;
+  if (!animacao) throw new Error("A cena não tem animação");
+  const visiveis = objetosVisiveis(cena);
+  if (visiveis.length === 0) throw new Error("Nenhum objeto visível para exportar");
+
+  const quadros = animacao.duracao_quadros;
+  const amostras = visiveis.reduce((total, o) => total + quadros * propriedadesAnimadas(cena, o.id).length, 0);
+  if (amostras > LIMITE_AMOSTRAS) {
+    throw new Error(`A animação tem ${amostras} amostras. O limite é ${LIMITE_AMOSTRAS}; reduza a duração ou os keyframes.`);
+  }
+
+  const malhas: MalhaGlb[] = [];
+  let menorY = Infinity;
+  for (const objeto of visiveis) {
+    const geometria = construirGeometriaObjeto(cena, { ...objeto, transformacao: IDENTIDADE });
+    const sequencia = Array.from({ length: quadros }, (_, q) => poseNoQuadro(cena, objeto, q));
+    const trilhas: NonNullable<MalhaGlb["trilhas"]> = [];
+    for (const propriedade of propriedadesAnimadas(cena, objeto.id)) {
+      if (propriedade === "posicao") trilhas.push({ caminho: "translation", valores: sequencia.flatMap((t) => t.posicao) });
+      else if (propriedade === "escala") trilhas.push({ caminho: "scale", valores: sequencia.flatMap((t) => t.escala) });
+      else trilhas.push({ caminho: "rotation", valores: sequencia.flatMap((t) => quaternionDeGraus(t.rotacao_graus)) });
+    }
+    const inicial = sequencia[0];
+    malhas.push({
+      nome: objeto.nome,
+      geometria,
+      material: objeto.material,
+      imagem: await resolverImagem(objeto.material),
+      pose: { posicao: inicial.posicao, quaternion: quaternionDeGraus(inicial.rotacao_graus), escala: inicial.escala },
+      trilhas,
+    });
+    if (opcoes.baseNoChao) {
+      const mundo = construirGeometriaObjeto(cena, { ...objeto, transformacao: inicial });
+      mundo.computeBoundingBox();
+      menorY = Math.min(menorY, mundo.boundingBox?.min.y ?? 0);
+    }
+  }
+
+  // Escala e base no chão ficam num nó raiz: valem para toda a animação. A base é medida no quadro 0.
+  const translacaoY = opcoes.baseNoChao && Number.isFinite(menorY) ? -opcoes.escala * menorY : 0;
+  const raiz =
+    opcoes.escala !== 1 || translacaoY !== 0
+      ? { escala: opcoes.escala, translacao: [0, translacaoY, 0] as [number, number, number] }
+      : undefined;
+
+  return gerarGlb(malhas, { raiz, animacao: { fps: animacao.fps, quadros } });
 }

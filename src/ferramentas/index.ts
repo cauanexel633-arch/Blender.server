@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { executarAgente } from "../agentes/agente.js";
 import { ferramentasAnimacao } from "./animacao.js";
+import { ferramentasAnimacao3d } from "./animacao3d.js";
 import { ferramentasAudio } from "./audio.js";
 import { ferramentasCena } from "./cena.js";
 import { ferramentasDesenho } from "./desenho.js";
@@ -17,6 +18,7 @@ export const ferramentasBase: Ferramenta[] = [
   ...ferramentasCena,
   ...ferramentasDesenho,
   ...ferramentasAnimacao,
+  ...ferramentasAnimacao3d,
   ...ferramentasAudio,
   ...ferramentasModelagem,
   ...ferramentasEdicao,

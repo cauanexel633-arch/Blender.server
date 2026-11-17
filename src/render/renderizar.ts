@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, resolve, sep } from "node:path";
 import chromium from "@sparticuz/chromium";
-import puppeteer, { type Browser, type HTTPRequest } from "puppeteer-core";
+import puppeteer, { type Browser, type HTTPRequest, type Page } from "puppeteer-core";
 import { gerarGlbDaCena, malhasDaCena } from "../geometria/exportar.js";
 import type { Cena } from "../geometria/tipos.js";
 
@@ -59,8 +59,20 @@ async function atenderRequisicao(req: HTTPRequest, raiz: string): Promise<void> 
   }
 }
 
-function paginaRender(glbBase64: string, camera: Camera, largura: number, altura: number): string {
-  // Só valores controlados pelo servidor entram no HTML: base64 do GLB, direção e dimensões numéricas.
+/**
+ * Página que carrega o GLB (com animação, se houver), ajusta uma câmera fixa que enquadra todos os
+ * quadros pedidos e expõe __render(quadro) e __pixels(quadro) para o servidor.
+ */
+function paginaRender(
+  glbBase64: string,
+  camera: Camera,
+  largura: number,
+  altura: number,
+  fps: number,
+  quadros: number[],
+  enquadrar: number[],
+): string {
+  // Só valores controlados pelo servidor entram no HTML: base64 do GLB, direção, números e quadros inteiros.
   const dir = JSON.stringify(DIRECOES[camera]);
   return `<!doctype html>
 <html><head><meta charset="utf-8">
@@ -74,6 +86,9 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 const W = ${largura}, H = ${altura};
 const DIR = ${dir};
 const B64 = "${glbBase64}";
+const FPS = ${fps};
+const QUADROS = ${JSON.stringify(quadros)};
+const ENQUADRAR = ${JSON.stringify(enquadrar)};
 try {
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   renderer.setSize(W, H);
@@ -88,7 +103,17 @@ try {
   const bytes = Uint8Array.from(atob(B64), (c) => c.charCodeAt(0));
   const gltf = await new GLTFLoader().parseAsync(bytes.buffer, "");
   cena.add(gltf.scene);
-  const caixa = new THREE.Box3().setFromObject(gltf.scene);
+  const mixer = new THREE.AnimationMixer(gltf.scene);
+  for (const clip of gltf.animations) mixer.clipAction(clip).play();
+
+  // Câmera única para toda a sequência: enquadra a união das caixas de todos os quadros.
+  const caixa = new THREE.Box3();
+  for (const q of ENQUADRAR) {
+    mixer.setTime(q / FPS);
+    gltf.scene.updateMatrixWorld(true);
+    caixa.expandByObject(gltf.scene);
+  }
+  if (caixa.isEmpty()) caixa.set(new THREE.Vector3(-0.5, -0.5, -0.5), new THREE.Vector3(0.5, 0.5, 0.5));
   const centro = caixa.getCenter(new THREE.Vector3());
   const raio = Math.max(caixa.getSize(new THREE.Vector3()).length() / 2, 0.5);
   const camera = new THREE.PerspectiveCamera(35, W / H, raio * 0.01, raio * 100);
@@ -98,7 +123,24 @@ try {
   const luz = new THREE.DirectionalLight(0xffffff, 1.2);
   luz.position.copy(centro).addScaledVector(direcao, raio * 5);
   cena.add(luz);
-  renderer.render(cena, camera);
+
+  window.__render = (q) => {
+    mixer.setTime(q / FPS);
+    renderer.render(cena, camera);
+  };
+  window.__pixels = (q) => {
+    window.__render(q);
+    const tela = document.createElement("canvas");
+    tela.width = W;
+    tela.height = H;
+    const ctx = tela.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(renderer.domElement, 0, 0, W, H);
+    const dados = ctx.getImageData(0, 0, W, H).data;
+    let texto = "";
+    for (let i = 0; i < dados.length; i += 0x8000) texto += String.fromCharCode(...dados.subarray(i, i + 0x8000));
+    return btoa(texto);
+  };
+  window.__render(QUADROS[0]);
   window.__estado = "pronto";
 } catch (e) {
   window.__estado = "erro";
@@ -114,12 +156,18 @@ export interface ResultadoRender {
   altura: number;
 }
 
-/** Renderiza a cena em PNG num Chromium headless (WebGL por software), sem GPU nem computador local. */
-export async function renderizarCena(cena: Cena, camera: Camera, largura: number, altura: number): Promise<ResultadoRender> {
-  if (malhasDaCena(cena).length === 0) throw new Error("A cena não tem objetos visíveis para renderizar");
-
+/** Abre a cena numa página pronta para renderizar os quadros pedidos. O chamador fecha o navegador. */
+async function abrirCena(
+  cena: Cena,
+  camera: Camera,
+  largura: number,
+  altura: number,
+  quadros: number[],
+): Promise<{ navegador: Browser; pagina: Page }> {
   const glb = await gerarGlbDaCena(cena);
-  const html = paginaRender(glb.toString("base64"), camera, largura, altura);
+  // A câmera enquadra a animação inteira, para que quadros diferentes saiam com o mesmo enquadramento.
+  const enquadrar = Array.from({ length: cena.animacao?.duracao_quadros ?? 1 }, (_, i) => i);
+  const html = paginaRender(glb.toString("base64"), camera, largura, altura, cena.animacao?.fps ?? 24, quadros, enquadrar);
 
   const navegador = await abrirNavegador(largura, altura);
   const diagnostico: string[] = [];
@@ -146,11 +194,60 @@ export async function renderizarCena(cena: Cena, camera: Camera, largura: number
       const erro = await pagina.evaluate(() => (window as unknown as { __erro?: string }).__erro);
       throw new Error(`Falha ao renderizar: ${erro}`);
     }
+    return { navegador, pagina };
+  } catch (erro) {
+    await navegador.close();
+    throw erro;
+  }
+}
+
+/**
+ * Renderiza a cena em PNG num Chromium headless (WebGL por software), sem GPU nem computador local.
+ * Com `quadro`, mostra a pose da animação naquele quadro; sem ele, a pose do quadro 0.
+ */
+export async function renderizarCena(
+  cena: Cena,
+  camera: Camera,
+  largura: number,
+  altura: number,
+  quadro?: number,
+): Promise<ResultadoRender> {
+  if (malhasDaCena(cena).length === 0) throw new Error("A cena não tem objetos visíveis para renderizar");
+  const q = quadro ?? 0;
+  const { navegador, pagina } = await abrirCena(cena, camera, largura, altura, [q]);
+  try {
+    await pagina.evaluate((quadroPagina: number) => {
+      (window as unknown as { __render: (n: number) => void }).__render(quadroPagina);
+    }, q);
     const png = (await pagina.screenshot({
       type: "png",
       clip: { x: 0, y: 0, width: largura, height: altura },
     })) as Buffer;
     return { png, camera, largura, altura };
+  } finally {
+    await navegador.close();
+  }
+}
+
+/** Pixels RGBA (sem compressão) de cada quadro pedido, com a mesma câmera para toda a sequência. */
+export async function renderizarQuadrosCena(
+  cena: Cena,
+  camera: Camera,
+  largura: number,
+  altura: number,
+  quadros: number[],
+): Promise<Buffer[]> {
+  if (malhasDaCena(cena).length === 0) throw new Error("A cena não tem objetos visíveis para renderizar");
+  const { navegador, pagina } = await abrirCena(cena, camera, largura, altura, quadros);
+  try {
+    const saida: Buffer[] = [];
+    for (const q of quadros) {
+      const base64 = await pagina.evaluate((quadroPagina: number) => {
+        return (window as unknown as { __pixels: (n: number) => string }).__pixels(quadroPagina);
+      }, q);
+      saida.push(Buffer.from(base64, "base64"));
+    }
+    return saida;
   } finally {
     await navegador.close();
   }
