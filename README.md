@@ -34,7 +34,7 @@ Cliente de IA ──HTTPS / Bearer──► /mcp (Vercel Function, stateless)
                                      │
             ┌────────────────────────┼──────────────────────────┐
             ▼                        ▼                          ▼
-  Cenas (Upstash Redis)    Geometria (three.js +       Render (Chromium headless
+  Cenas (Supabase Postgres)    Geometria (three.js +       Render (Chromium headless
   JSON por cena_id          three-bvh-csg, GLB escrito  + three.js local, WebGL
                             à mão, STL/OBJ)             por software) → PNG
             ▼
@@ -59,13 +59,14 @@ npm test                      # 38 testes (inclui o endpoint MCP real)
 CHROME_PATH=/caminho/do/chrome npm test   # inclui o teste de render com Chromium
 ```
 
-Sem `UPSTASH_REDIS_REST_URL`, as cenas ficam só na memória (serve para testes). Em produção, use Redis.
+Sem `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`, as cenas ficam só na memória (serve para testes). Em produção, use o Supabase.
 
 ## Deploy na Vercel
 
 1. **Importe o repositório** na Vercel (Add New → Project → este repositório). Framework: *Other*. Nenhum comando de build é necessário.
-2. **Adicione o Redis**: Storage → Marketplace → Upstash (Redis). Conecte ao projeto; a integração cria as variáveis `KV_REST_API_URL` e `KV_REST_API_TOKEN`.
+2. **Crie a tabela**: o SQL está em `supabase/migrations/001_cenas.sql`. Rode no SQL Editor do projeto Supabase (ou via CLI). A tabela tem RLS ligado e nenhuma política pública.
 3. **Defina as variáveis de ambiente** (Settings → Environment Variables):
+   - `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`: armazenamento das cenas. A chave service_role é secreta: nunca a coloque no cliente MCP nem no código.
    - `MCP_TOKEN`: obrigatório. Gere com `openssl rand -hex 32`.
    - `OPENROUTER_API_KEY` (recomendado): para a ferramenta `agente`, com o modelo gratuito `openrouter/free`. `OPENROUTER_MODEL` troca o modelo.
    - `ANTHROPIC_API_KEY` (alternativa paga) e `AGENT_PROVIDER` (`openrouter` ou `anthropic`, opcional).

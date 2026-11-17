@@ -1,5 +1,5 @@
-import { Redis } from "@upstash/redis";
-import type { Cena } from "../geometria/tipos.js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { Cena } from "../geometria/tipos.js";
 
 export interface Loja {
   /** false quando as cenas vivem só na memória desta instância (não sobrevive entre invocações). */
@@ -29,43 +29,63 @@ class LojaMemoria implements Loja {
   }
 }
 
-const INDICE = "bender:cenas";
-const chave = (id: string) => `bender:cena:${id}`;
+const TABELA = "cenas";
 
-class LojaRedis implements Loja {
+/**
+ * Cenas em Postgres (Supabase). A tabela `cenas` tem RLS ligado sem políticas públicas:
+ * só o servidor, com a chave service_role, lê e escreve. Essa chave nunca vai ao cliente MCP.
+ */
+class LojaSupabase implements Loja {
   readonly persistente = true;
-  constructor(private readonly redis: Redis) {}
+  constructor(private readonly db: SupabaseClient) {}
 
   async listar(): Promise<Cena[]> {
-    const ids = await this.redis.smembers(INDICE);
-    if (ids.length === 0) return [];
-    const itens = await this.redis.mget<Cena[]>(...ids.map(chave));
-    return itens.filter((c): c is Cena => c !== null);
+    const { data, error } = await this.db
+      .from(TABELA)
+      .select("dados")
+      .order("atualizada_em", { ascending: false });
+    if (error) throw new Error(`Supabase: ${error.message}`);
+    return (data ?? []).map((linha) => Cena.parse(linha.dados));
   }
+
   async obter(id: string): Promise<Cena | null> {
-    return this.redis.get<Cena>(chave(id));
+    const { data, error } = await this.db.from(TABELA).select("dados").eq("id", id).maybeSingle();
+    if (error) throw new Error(`Supabase: ${error.message}`);
+    return data ? Cena.parse(data.dados) : null;
   }
+
   async salvar(cena: Cena): Promise<void> {
-    await Promise.all([this.redis.set(chave(cena.id), cena), this.redis.sadd(INDICE, cena.id)]);
+    const { error } = await this.db.from(TABELA).upsert({
+      id: cena.id,
+      nome: cena.nome,
+      dados: cena,
+      criada_em: cena.criada_em,
+      atualizada_em: cena.atualizada_em,
+    });
+    if (error) throw new Error(`Supabase: ${error.message}`);
   }
+
   async apagar(id: string): Promise<boolean> {
-    const removidos = await this.redis.del(chave(id));
-    await this.redis.srem(INDICE, id);
-    return removidos > 0;
+    const { data, error } = await this.db.from(TABELA).delete().eq("id", id).select("id");
+    if (error) throw new Error(`Supabase: ${error.message}`);
+    return (data ?? []).length > 0;
   }
 }
 
 let instancia: Loja | undefined;
 
 /**
- * Usa Upstash Redis quando as variáveis estiverem definidas (a integração Upstash da Vercel
- * cria KV_REST_API_URL/KV_REST_API_TOKEN). Sem elas, cai na memória, útil só para testes.
+ * Usa Supabase quando SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY estiverem definidas.
+ * Sem elas, cai na memória: útil só para testes e desenvolvimento.
  */
 export function obterLoja(): Loja {
   if (instancia) return instancia;
-  const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
-  instancia = url && token ? new LojaRedis(new Redis({ url, token })) : new LojaMemoria();
+  const url = process.env.SUPABASE_URL;
+  const chave = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  instancia =
+    url && chave
+      ? new LojaSupabase(createClient(url, chave, { auth: { persistSession: false, autoRefreshToken: false } }))
+      : new LojaMemoria();
   return instancia;
 }
 

@@ -15,7 +15,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
     "@sparticuz/chromium": "153.0.0",
-    "@upstash/redis": "1.35.4",
+    "@supabase/supabase-js": "^2.119.0",
     "puppeteer-core": "24.15.0",
     "three": "0.187.0",
     "three-bvh-csg": "0.0.18",
