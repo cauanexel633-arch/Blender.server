@@ -71,14 +71,27 @@ Sem `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`, as cenas ficam só na memória
    - `OPENROUTER_API_KEY` (recomendado): para a ferramenta `agente`, com o modelo gratuito `openrouter/free`. `OPENROUTER_MODEL` troca o modelo.
    - `ANTHROPIC_API_KEY` (alternativa paga) e `AGENT_PROVIDER` (`openrouter` ou `anthropic`, opcional).
    - `TAVILY_API_KEY` ou `BRAVE_API_KEY`: para a busca web.
+   - `PUBLIC_URL`: endereço público do projeto, por exemplo `https://SEU-PROJETO.vercel.app`. Usado nos metadados OAuth. Sem ele, o servidor usa o host da requisição.
 4. **Faça o deploy** e confira `https://SEU-PROJETO.vercel.app/health`. Esperado: `autenticacao_configurada: true`, `persistencia: true`.
 
 ### Conectar um cliente MCP
 
-- **URL:** `https://SEU-PROJETO.vercel.app/mcp`
+A URL do servidor é sempre `https://SEU-PROJETO.vercel.app/mcp`.
+
+**ChatGPT, Claude.ai e outros clientes sem cabeçalhos personalizados (OAuth):**
+
+1. Adicione um conector remoto MCP com a URL acima.
+2. Escolha autenticação **OAuth**. O cliente registra-se sozinho no servidor (registro dinâmico) e abre uma página de login.
+3. Na página de login, digite o `MCP_TOKEN` e confirme. Não há usuário: a senha é o próprio token.
+4. Depois disso, o cliente renova o acesso sozinho pelo refresh token (válido por 30 dias).
+
+O fluxo segue OAuth 2.1 com PKCE (S256). Os metadados ficam em `/.well-known/oauth-protected-resource` e `/.well-known/oauth-authorization-server`.
+
+**Clientes que aceitam cabeçalhos (Claude Desktop, Cursor e similares):**
+
 - **Cabeçalho:** `Authorization: Bearer SEU_MCP_TOKEN`
 
-Exemplo de configuração JSON para clientes que aceitam servidores remotos com cabeçalhos:
+Exemplo de configuração JSON para esses clientes:
 
 ```json
 {
