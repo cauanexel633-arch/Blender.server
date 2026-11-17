@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { ADDITION, Brush, Evaluator, INTERSECTION, SUBTRACTION } from "three-bvh-csg";
+import { ADDITION, Brush, Evaluator, INTERSECTION, SUBTRACTION } from "three-bvh-csg/src/index.js";
 import type { Cena, ObjetoCena, Primitiva, Transformacao } from "./tipos.js";
 
 const OPERACOES_CSG = {
