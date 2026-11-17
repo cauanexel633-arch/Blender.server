@@ -121,7 +121,8 @@ describe("fluxo completo de ferramentas (loja em memória)", () => {
     const glbRes = await todasFerramentas.find((f) => f.nome === "exportar_modelo")!.executar({ cena_id, formato: "glb" });
     const recurso = glbRes[0] as { type: string; resource: { blob: string; mimeType: string } };
     expect(recurso.type).toBe("resource");
-    expect(recurso.resource.mimeType).toBe("model/gltf-binary");
+    // Tipo genérico: clientes MCP recusam model/gltf-binary no recurso.
+    expect(recurso.resource.mimeType).toBe("application/octet-stream");
     expect(Buffer.from(recurso.resource.blob, "base64").readUInt32LE(0)).toBe(0x46546c67);
   });
 

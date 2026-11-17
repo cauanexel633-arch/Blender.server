@@ -81,15 +81,15 @@ export const ferramentasVisao = [
       let ext: string;
       if (a.formato === "glb") {
         dados = await gerarGlbDaCena(cena, opcoes);
-        mime = "model/gltf-binary";
+        mime = "application/octet-stream";
         ext = "glb";
       } else if (a.formato === "stl") {
         dados = gerarStl(cena, a.stl_ascii ? "ascii" : "binario", opcoes);
-        mime = "model/stl";
+        mime = "application/octet-stream";
         ext = "stl";
       } else {
         dados = Buffer.from(gerarObj(cena, opcoes), "utf8");
-        mime = "model/obj";
+        mime = "text/plain";
         ext = "obj";
       }
       if (dados.length > LIMITE_INLINE_BYTES) {
