@@ -7,6 +7,7 @@ import { ferramentasMaterial } from "./material.js";
 import { ferramentasModelagem } from "./modelagem.js";
 import { ferramentasPesquisa } from "./pesquisa.js";
 import { definir, texto, type Ferramenta } from "./tipos.js";
+import { ferramentasVfx } from "./vfx.js";
 import { ferramentasVisao } from "./visao.js";
 
 /** Ferramentas diretas, usadas pelo cliente MCP e também pelo agente interno. */
@@ -17,6 +18,7 @@ export const ferramentasBase: Ferramenta[] = [
   ...ferramentasEdicao,
   ...ferramentasMaterial,
   ...ferramentasVisao,
+  ...ferramentasVfx,
   ...ferramentasPesquisa,
 ];
 

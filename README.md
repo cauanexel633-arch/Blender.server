@@ -14,6 +14,7 @@ Servidor **MCP remoto** para modelagem 3D, hospedado na **Vercel**. Não depende
 | Ver | `renderizar_cena` (PNG em frente, topo, lado ou isométrica) |
 | Medir | `inspecionar_cena` (dimensões, volume, triângulos, avisos de impressão) |
 | Exportar | `exportar_modelo` (GLB, STL binário/ASCII, OBJ), com `escala` e `base_no_chao` |
+| VFX 2D | `criar_efeito_2d` (explosão, fogo, fumaça, faíscas, brilho, chuva, neve), `apagar_efeito_2d` |
 | Criar 2D | `criar_desenho`, `adicionar_forma` (retângulo, elipse, linha, polígono, texto), `adicionar_imagem`, `adicionar_pixelart`, `editar_elemento`, `mover_camada`, `renderizar_desenho` (PNG), `exportar_desenho` (PNG ou SVG) |
 | Pesquisar | `pesquisar_web` (Tavily ou Brave), `ler_pagina` (texto limpo de uma URL pública) |
 | Agente | `agente` (sub-agente que escolhe as ferramentas sozinho; usa OpenRouter com modelo gratuito por padrão, ou Anthropic) |

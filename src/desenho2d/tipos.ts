@@ -18,6 +18,8 @@ export const Elemento = z.object({
   id: z.string(),
   nome: z.string().optional(),
   tipo: z.enum(TIPOS_FORMA),
+  /** Identificador do efeito ou conjunto a que o elemento pertence (permite apagar o conjunto inteiro). */
+  grupo: z.string().optional(),
   x: z.number().default(0),
   y: z.number().default(0),
   largura: z.number().positive().optional(),

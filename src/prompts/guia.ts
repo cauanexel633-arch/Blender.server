@@ -43,4 +43,10 @@ CRIAÇÃO 2D (desenhos, interfaces, pixel art, ilustrações)
 - VERIFICAR: renderizar_desenho após cada etapa grande.
 - Exportar: exportar_desenho em png (raster) ou svg (vetor). Com armazenamento configurado, entrega um link de 1 hora.
 
+VFX 2D (efeitos de partículas em um desenho)
+- criar_efeito_2d (desenho_id, tipo, x, y, quantidade, progresso, semente, cores, tamanho, raio). Tipos: explosao, fogo, fumaca, faiscas, brilho, chuva, neve.
+- x, y é o centro do efeito. chuva e neve usam largura e altura como área. progresso 0 é o começo e 1 é o fim.
+- Mesma semente, mesmo resultado. Para uma sequência de quadros, varie só o progresso e use grupos diferentes.
+- apagar_efeito_2d remove um efeito inteiro pelo nome do grupo (exige confirmar=true).
+
 Quando o usuário pedir algo vago, faça um plano curto em etapas, execute e mostre o render final com um resumo do que foi feito.`;

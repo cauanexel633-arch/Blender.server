@@ -16,17 +16,17 @@ const campoConfirmar = z
   .refine((v) => v === true, { message: "Use true para confirmar" })
   .describe("Deve ser exatamente true para confirmar");
 
-const MAX_ELEMENTOS = 2000;
+export const MAX_ELEMENTOS = 2000;
 const MAX_IMAGENS = 20;
 const agora = () => new Date().toISOString();
 
-async function carregarDesenho(id: string): Promise<Desenho> {
+export async function carregarDesenho(id: string): Promise<Desenho> {
   const desenho = await obterLojaDesenhos().obter(id);
   if (!desenho) throw new Error(`Desenho "${id}" não encontrado. Use listar_desenhos para ver os disponíveis.`);
   return desenho;
 }
 
-async function salvarDesenho(desenho: Desenho): Promise<void> {
+export async function salvarDesenho(desenho: Desenho): Promise<void> {
   desenho.atualizada_em = agora();
   await obterLojaDesenhos().salvar(desenho);
 }
