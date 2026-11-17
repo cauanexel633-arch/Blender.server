@@ -13,7 +13,7 @@ Servidor **MCP remoto** para modelagem 3D, hospedado na **Vercel**. Não depende
 | Texturizar | `aplicar_textura` (procedural: xadrez, listras, bolinhas, gradiente, ruído; ou imagem por URL) |
 | Ver | `renderizar_cena` (PNG em frente, topo, lado ou isométrica) |
 | Medir | `inspecionar_cena` (dimensões, volume, triângulos, avisos de impressão) |
-| Exportar | `exportar_modelo` (GLB, STL binário/ASCII, OBJ) |
+| Exportar | `exportar_modelo` (GLB, STL binário/ASCII, OBJ), com `escala` e `base_no_chao` |
 | Pesquisar | `pesquisar_web` (Tavily ou Brave), `ler_pagina` (texto limpo de uma URL pública) |
 | Agente | `agente` (sub-agente que escolhe as ferramentas sozinho; usa OpenRouter com modelo gratuito por padrão, ou Anthropic) |
 
@@ -108,7 +108,8 @@ Exemplo de configuração JSON para esses clientes:
 
 - **Render no Vercel:** usa `@sparticuz/chromium` com WebGL por software. Testado localmente com Chrome real, ainda não testado na Vercel: confira os logs no primeiro uso. Se o tempo estourar, aumente `maxDuration` (plano que permitir) ou reduza `largura`/`altura`.
 - **Tempo limite:** cada função tem `maxDuration` de 60 s. Booleanas com malhas muito densas e o agente em pedidos longos podem estourar; use `segmentos` baixos para rascunhos.
-- **Exportação inline:** arquivos acima de ~3,5 MB não são devolvidos pelo MCP. Reduza a resolução ou use STL binário.
+- **Exportação inline:** arquivos acima de ~3,5 MB não são devolvidos pelo MCP. A mensagem de erro indica o formato e a resolução a usar.
+- **Unidades e posição na exportação:** `escala` multiplica todas as coordenadas (0,1 para mm → cm; 0,001 para mm → m). `base_no_chao=true` assenta o menor ponto do modelo em y = 0. Use os dois antes de imprimir ou publicar. Cada exportação devolve um relatório com triângulos, dimensões finais e avisos (malhas abertas que não imprimem sólido).
 - **Textura por URL:** aceita só PNG ou JPEG públicos, de até 4 MB. Endereços internos são bloqueados.
 - **Booleanas:** operandos precisam ser malhas fechadas para resultados corretos. A inspeção avisa quando um objeto tem volume zero.
 - **Agente:** precisa de `OPENROUTER_API_KEY` ou `ANTHROPIC_API_KEY`. Usa o mesmo conjunto de ferramentas do cliente, exceto o próprio `agente`.

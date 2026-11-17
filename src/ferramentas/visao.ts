@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { gerarGlbDaCena, gerarObj, gerarStl, inspecionarCena } from "../geometria/exportar.js";
+import {
+  gerarGlbDaCena,
+  gerarObj,
+  gerarStl,
+  inspecionarCena,
+  malhasParaExportar,
+  resumoExportacao,
+} from "../geometria/exportar.js";
 import { renderizarCena } from "../render/renderizar.js";
 import { definir, texto } from "./tipos.js";
 import { campoCenaId, carregarCena } from "./comum.js";
@@ -46,43 +53,75 @@ export const ferramentasVisao = [
     nome: "exportar_modelo",
     titulo: "Exportar modelo",
     descricao:
-      "Exporta a cena em GLB (web, jogos, com cores e texturas), STL (impressão 3D, binário ou ASCII) ou OBJ (sem materiais). Retorna o arquivo como recurso. Limite inline de ~3,5 MB.",
+      "Exporta a cena em GLB (web, jogos, com cores e texturas), STL (impressão 3D, binário ou ASCII) ou OBJ (sem materiais). " +
+      "Use escala para trocar a unidade (ex.: escala 0.1 de mm para cm) e base_no_chao=true para assentar o modelo em y=0 antes de imprimir ou publicar. " +
+      "Retorna o arquivo como recurso, com resumo de triângulos, dimensões finais e avisos. Limite inline de ~3,5 MB.",
     somenteLeitura: true,
     schema: {
       cena_id: campoCenaId,
       formato: z.enum(["glb", "stl", "obj"]),
       stl_ascii: z.boolean().default(false).describe("Só para STL: true gera texto em vez de binário"),
+      escala: z
+        .number()
+        .positive()
+        .max(1000)
+        .default(1)
+        .describe("Multiplica todas as coordenadas. Ex.: 0.1 converte mm para cm; 0.001 converte mm para m"),
+      base_no_chao: z
+        .boolean()
+        .default(false)
+        .describe("Move o modelo para que a menor altura fique em y = 0. Recomendado para impressão e web"),
     },
     executar: async (a) => {
       const cena = await carregarCena(a.cena_id);
+      const opcoes = { escala: a.escala, baseNoChao: a.base_no_chao };
+      const resumo = resumoExportacao(malhasParaExportar(cena, opcoes));
       let dados: Buffer;
       let mime: string;
       let ext: string;
       if (a.formato === "glb") {
-        dados = await gerarGlbDaCena(cena);
+        dados = await gerarGlbDaCena(cena, opcoes);
         mime = "model/gltf-binary";
         ext = "glb";
       } else if (a.formato === "stl") {
-        dados = gerarStl(cena, a.stl_ascii ? "ascii" : "binario");
+        dados = gerarStl(cena, a.stl_ascii ? "ascii" : "binario", opcoes);
         mime = "model/stl";
         ext = "stl";
       } else {
-        dados = Buffer.from(gerarObj(cena), "utf8");
+        dados = Buffer.from(gerarObj(cena, opcoes), "utf8");
         mime = "model/obj";
         ext = "obj";
       }
       if (dados.length > LIMITE_INLINE_BYTES) {
+        const sugestoes = [
+          a.formato !== "stl" ? "use formato 'stl' (binário, cerca de 50 bytes por triângulo)" : null,
+          "reduza `segmentos` nas primitivas e nas revoluções",
+          "use 'base_no_chao' e 'escala' só para ajustar posição e unidade: não diminuem o arquivo",
+        ].filter(Boolean);
         throw new Error(
-          `Arquivo com ${(dados.length / 1e6).toFixed(1)} MB excede o limite inline. Reduza a resolução (segmentos) ou use STL binário.`,
+          `Arquivo com ${(dados.length / 1e6).toFixed(1)} MB (${resumo.triangulos} triângulos) excede o limite inline de ~3,5 MB. ` +
+            `Opções: ${sugestoes.join("; ")}.`,
         );
       }
-      const nome = cena.nome.replace(/[^\w-]+/g, "_") || "modelo";
+      const nome = cena.nome.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w-]+/g, "_").replace(/^_+|_+$/g, "") || "modelo";
+      const relatorio = {
+        arquivo: `${nome}.${ext}`,
+        formato: a.formato,
+        bytes: dados.length,
+        objetos: resumo.objetos,
+        triangulos: resumo.triangulos,
+        dimensoes: resumo.dimensoes,
+        menor_y: resumo.menor_y,
+        escala_aplicada: a.escala,
+        base_no_chao: a.base_no_chao,
+        avisos: resumo.avisos,
+      };
       return [
         {
           type: "resource",
           resource: { uri: `bender://${cena.id}/${nome}.${ext}`, mimeType: mime, blob: dados.toString("base64") },
         },
-        { type: "text", text: `${nome}.${ext} — ${dados.length} bytes` },
+        { type: "text", text: JSON.stringify(relatorio, null, 2) },
       ];
     },
   }),
