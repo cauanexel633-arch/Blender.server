@@ -44,6 +44,19 @@ export const Elemento = z.object({
 });
 export type Elemento = z.infer<typeof Elemento>;
 
+export const PROPRIEDADES_ANIMAVEIS = ["x", "y", "largura", "altura", "opacidade", "rotacao"] as const;
+export const INTERPOLACOES = ["linear", "suave", "constante"] as const;
+
+/** Keyframe: a partir deste quadro, a propriedade vale `valor` até o próximo keyframe dela. */
+export const Chave = z.object({
+  elemento_id: z.string(),
+  propriedade: z.enum(PROPRIEDADES_ANIMAVEIS),
+  quadro: z.number().int().min(0),
+  valor: z.number(),
+  interpolacao: z.enum(INTERPOLACOES).default("linear"),
+});
+export type Chave = z.infer<typeof Chave>;
+
 export const Desenho = z.object({
   id: z.string(),
   nome: z.string(),
@@ -52,6 +65,11 @@ export const Desenho = z.object({
   /** Cor de fundo, ou null para fundo transparente. */
   fundo: Cor.nullable(),
   elementos: z.array(Elemento),
+  /** Animação: quadros por segundo e número de quadros da sequência. */
+  fps: z.number().int().min(1).max(60).default(12),
+  duracao_quadros: z.number().int().min(1).max(600).default(1),
+  /** Keyframes: valor de uma propriedade de um elemento em um quadro. */
+  chaves: z.array(Chave).default([]),
   criada_em: z.string(),
   atualizada_em: z.string(),
 });

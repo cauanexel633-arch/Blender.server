@@ -49,4 +49,13 @@ VFX 2D (efeitos de partículas em um desenho)
 - Mesma semente, mesmo resultado. Para uma sequência de quadros, varie só o progresso e use grupos diferentes.
 - apagar_efeito_2d remove um efeito inteiro pelo nome do grupo (exige confirmar=true).
 
+ANIMAÇÃO 2D (keyframes sobre os elementos de um desenho)
+- Ordem: configurar_animacao (fps e duracao_quadros), depois animar_propriedade para cada keyframe, depois exportar_animacao.
+- Quadros começam em 0. animar_propriedade (desenho_id, elemento_id, propriedade, quadro, valor, interpolacao). Propriedades: x, y, largura, altura, opacidade (0 a 1), rotacao (graus).
+- Interpolação entre keyframes: linear, suave (começa e termina devagar) ou constante (segura o valor até o próximo keyframe).
+- Um keyframe no mesmo elemento, propriedade e quadro substitui o anterior. Quadro além da duração aumenta a duração sozinho.
+- apagar_chaves remove os keyframes de um elemento, ou só de uma propriedade.
+- renderizar_desenho aceita quadro para ver um instante específico da animação. Use para conferir antes de exportar.
+- exportar_animacao: formato gif (animação para web e apresentações) ou folha_png (todos os quadros em grade, para sprites de jogos). Escolha quadro_inicial e quadro_final. Limite de 120 quadros por exportação.
+
 Quando o usuário pedir algo vago, faça um plano curto em etapas, execute e mostre o render final com um resumo do que foi feito.`;

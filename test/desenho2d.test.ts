@@ -12,6 +12,9 @@ const base = (elementos: Elemento[] = [], fundo: string | null = "#ffffff"): Des
   altura: 50,
   fundo,
   elementos,
+  fps: 12,
+  duracao_quadros: 1,
+  chaves: [],
   criada_em: "2026-01-01T00:00:00.000Z",
   atualizada_em: "2026-01-01T00:00:00.000Z",
 });

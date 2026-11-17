@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { publicarExportacao, LIMITE_ARQUIVO_BYTES } from "../armazenamento/arquivos.js";
+import { aplicarQuadro } from "../animacao/avaliar.js";
 import { desenhoParaSvg } from "../desenho2d/svg.js";
 import { rasterizarSvg } from "../desenho2d/render.js";
 import { obterLojaDesenhos } from "../desenho2d/loja.js";
@@ -46,7 +47,7 @@ function adicionar(desenho: Desenho, elemento: Elemento): string {
 }
 
 /** Baixa as imagens do desenho uma vez e devolve URL → data URI, para o SVG ficar autocontido. */
-async function resolverImagens(desenho: Desenho): Promise<Map<string, string>> {
+export async function resolverImagens(desenho: Desenho): Promise<Map<string, string>> {
   const urls = [...new Set(desenho.elementos.filter((e) => e.tipo === "imagem" && e.url).map((e) => e.url!))];
   if (urls.length > MAX_IMAGENS) throw new Error(`O desenho usa ${urls.length} imagens. O limite é ${MAX_IMAGENS}.`);
   const mapa = new Map<string, string>();
@@ -92,6 +93,9 @@ export const ferramentasDesenho = [
         altura: a.altura,
         fundo: a.fundo === "transparente" ? null : a.fundo,
         elementos: [],
+        fps: 12,
+        duracao_quadros: 1,
+        chaves: [],
         criada_em: momento,
         atualizada_em: momento,
       };
@@ -373,15 +377,16 @@ export const ferramentasDesenho = [
     schema: {
       desenho_id: campoDesenhoId,
       escala: z.number().int().min(1).max(4).default(1).describe("Multiplicador de resolução (1 a 4)"),
+      quadro: z.number().int().min(0).default(0).describe("Quadro da animação a mostrar (0 é o primeiro)"),
     },
-    executar: async ({ desenho_id, escala }) => {
+    executar: async ({ desenho_id, escala, quadro }) => {
       const desenho = await carregarDesenho(desenho_id);
       const imagens = await resolverImagens(desenho);
-      const svg = desenhoParaSvg(desenho, imagens);
+      const svg = desenhoParaSvg(aplicarQuadro(desenho, quadro), imagens);
       const png = await rasterizarSvg(svg, desenho.largura, desenho.altura, escala, desenho.fundo === null);
       const conteudo: Conteudo[] = [
         { type: "image", data: png.toString("base64"), mimeType: "image/png" },
-        { type: "text", text: `Desenho ${desenho.id} (${desenho.nome}), ${desenho.largura}x${desenho.altura}, escala ${escala}` },
+        { type: "text", text: `Desenho ${desenho.id} (${desenho.nome}), ${desenho.largura}x${desenho.altura}, escala ${escala}, quadro ${quadro}` },
       ];
       return conteudo;
     },
