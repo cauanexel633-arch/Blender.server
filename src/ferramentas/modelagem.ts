@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Material, Primitiva, type ObjetoCena, type Transformacao } from "../geometria/tipos.js";
+import { Material, Ponto2, PontoRaioAltura, Primitiva, type ObjetoCena, type Transformacao } from "../geometria/tipos.js";
 import { definir, texto } from "./tipos.js";
 import {
   acharObjeto,
@@ -13,9 +13,9 @@ import {
 } from "./comum.js";
 
 const transformacaoDe = (a: {
-  posicao?: [number, number, number];
-  rotacao_graus?: [number, number, number];
-  escala?: [number, number, number];
+  posicao?: number[];
+  rotacao_graus?: number[];
+  escala?: number[];
 }): Transformacao => ({
   posicao: a.posicao ?? [0, 0, 0],
   rotacao_graus: a.rotacao_graus ?? [0, 0, 0],
@@ -82,7 +82,7 @@ export const ferramentasModelagem = [
     schema: {
       cena_id: campoCenaId,
       contorno: z
-        .array(z.tuple([z.number(), z.number()]))
+        .array(Ponto2)
         .min(3)
         .describe("Pontos do contorno [[x, y], ...]"),
       profundidade: z.number().positive().describe("Distância da extrusão no eixo Z"),
@@ -114,7 +114,7 @@ export const ferramentasModelagem = [
     schema: {
       cena_id: campoCenaId,
       perfil: z
-        .array(z.tuple([z.number().min(0), z.number()]))
+        .array(PontoRaioAltura)
         .min(2)
         .describe("Pontos [[raio, y], ...] de baixo para cima"),
       segmentos: z.number().int().min(3).max(256).optional().describe("Resolução angular (padrão 32)"),

@@ -65,7 +65,10 @@ export const ferramentasCena = [
     destrutiva: true,
     schema: {
       cena_id: campoCenaId,
-      confirmar: z.literal(true).describe("Deve ser exatamente true para confirmar a exclusão"),
+      confirmar: z
+        .boolean()
+        .refine((v) => v === true, { message: "Use true para confirmar" })
+        .describe("Deve ser exatamente true para confirmar a exclusão"),
     },
     executar: async ({ cena_id }) => {
       const apagou = await obterLoja().apagar(cena_id);

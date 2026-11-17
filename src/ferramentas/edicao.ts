@@ -91,7 +91,10 @@ export const ferramentasEdicao = [
     schema: {
       cena_id: campoCenaId,
       objeto_id: campoObjetoId,
-      confirmar: z.literal(true).describe("Deve ser exatamente true"),
+      confirmar: z
+        .boolean()
+        .refine((v) => v === true, { message: "Use true para confirmar" })
+        .describe("Deve ser exatamente true"),
     },
     executar: async (a) => {
       const cena = await carregarCena(a.cena_id);

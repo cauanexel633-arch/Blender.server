@@ -1,6 +1,17 @@
 import { z } from "zod";
 
-export const Vetor3 = z.tuple([z.number(), z.number(), z.number()]);
+/*
+ * Vetores e pontos são arrays simples com tamanho validado em refine. Tuplas (z.tuple) viram
+ * "items" em lista no JSON Schema, que clientes como o ChatGPT rejeitam ao carregar as ferramentas.
+ */
+const vetorFixo = (n: number) =>
+  z.array(z.number()).refine((v) => v.length === n, { message: `Use exatamente ${n} números` });
+
+export const Vetor3 = vetorFixo(3);
+export const Ponto2 = vetorFixo(2);
+export const PontoRaioAltura = z
+  .array(z.number())
+  .refine((v) => v.length === 2 && v[0] >= 0, { message: "Use [raio, y] com raio ≥ 0" });
 export const Cor = z
   .string()
   .regex(/^#[0-9a-fA-F]{6}$/, "Use cor hexadecimal no formato #rrggbb");
@@ -54,12 +65,12 @@ export const Origem = z.discriminatedUnion("tipo", [
   z.object({ tipo: z.literal("primitiva"), primitiva: Primitiva }),
   z.object({
     tipo: z.literal("extrusao"),
-    contorno: z.array(z.tuple([z.number(), z.number()])).min(3),
+    contorno: z.array(Ponto2).min(3),
     profundidade: z.number().positive(),
   }),
   z.object({
     tipo: z.literal("revolucao"),
-    perfil: z.array(z.tuple([z.number().min(0), z.number()])).min(2),
+    perfil: z.array(PontoRaioAltura).min(2),
     segmentos: z.number().int().min(3).max(256).default(32),
   }),
   z.object({
