@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { executarAgente } from "../agentes/agente.js";
 import { ferramentasCena } from "./cena.js";
+import { ferramentasDesenho } from "./desenho.js";
 import { ferramentasEdicao } from "./edicao.js";
 import { ferramentasMaterial } from "./material.js";
 import { ferramentasModelagem } from "./modelagem.js";
@@ -11,6 +12,7 @@ import { ferramentasVisao } from "./visao.js";
 /** Ferramentas diretas, usadas pelo cliente MCP e também pelo agente interno. */
 export const ferramentasBase: Ferramenta[] = [
   ...ferramentasCena,
+  ...ferramentasDesenho,
   ...ferramentasModelagem,
   ...ferramentasEdicao,
   ...ferramentasMaterial,

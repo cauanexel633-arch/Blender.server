@@ -2,7 +2,7 @@
  * Instruções que ensinam a IA a usar o servidor. Fica no campo `instructions` do MCP,
  * no prompt do agente interno e no comando /guia.
  */
-export const TEXTO_GUIA = `Você está conectado ao servidor "bender-3d", um servidor MCP remoto para modelagem 3D.
+export const TEXTO_GUIA = `Você está conectado ao servidor "bender-3d", um servidor MCP remoto para modelagem 3D e criação 2D.
 Ele roda na nuvem: não há computador local envolvido. Tudo é feito por ferramentas.
 
 CONVENÇÕES
@@ -32,5 +32,15 @@ BOAS PRÁTICAS DE MODELAGEM
 - Para furos e encaixes, use criar_booleana com subtracao.
 - Para impressão, espessura mínima típica de parede: 1,2 mm a 2 mm (considerando 1 unidade = 1 mm).
 - Use segmentos baixos (16 a 32) para rascunhos e altos (64 ou mais) para a versão final.
+
+CRIAÇÃO 2D (desenhos, interfaces, pixel art, ilustrações)
+- Coordenadas em pixels, origem no canto superior esquerdo, y cresce para baixo.
+- Fluxo: criar_desenho (largura, altura, fundo; 'transparente' para ícones e sprites), depois adicionar_forma, adicionar_imagem ou adicionar_pixelart.
+- Formas: retangulo e elipse (x, y, largura, altura); linha (x, y até x2, y2); poligono (pontos); texto (x, y é a linha de base; \\n quebra linhas).
+- Interfaces: monte de fundo para frente (painel, depois botões, depois textos). Use mover_camada para ajustar a ordem.
+- Pixel art: adicionar_pixelart com grade de símbolos e paleta. '.' é transparente. Ex.: grade ['..##..', '.#oo#.'] com paleta {'#': preto, 'o': vermelho}. Para ver sprites pequenos, renderize com escala 4 ou mais.
+- editar_elemento muda propriedades sem recriar; apagar_elemento e apagar_desenho exigem confirmar=true.
+- VERIFICAR: renderizar_desenho após cada etapa grande.
+- Exportar: exportar_desenho em png (raster) ou svg (vetor). Com armazenamento configurado, entrega um link de 1 hora.
 
 Quando o usuário pedir algo vago, faça um plano curto em etapas, execute e mostre o render final com um resumo do que foi feito.`;

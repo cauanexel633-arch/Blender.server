@@ -25,7 +25,7 @@ function obterRaizThree(): string {
   return raizThree;
 }
 
-async function abrirNavegador(largura: number, altura: number): Promise<Browser> {
+export async function abrirNavegador(largura: number, altura: number): Promise<Browser> {
   const naVercel = Boolean(process.env.VERCEL);
   const executavel = process.env.CHROME_PATH ?? (await chromium.executablePath());
   const args = naVercel ? chromium.args : ["--no-sandbox", "--disable-dev-shm-usage"];
