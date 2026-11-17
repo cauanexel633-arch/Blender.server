@@ -15,7 +15,7 @@ Servidor **MCP remoto** para modelagem 3D, hospedado na **Vercel**. Não depende
 | Medir | `inspecionar_cena` (dimensões, volume, triângulos, avisos de impressão) |
 | Exportar | `exportar_modelo` (GLB, STL binário/ASCII, OBJ) |
 | Pesquisar | `pesquisar_web` (Tavily ou Brave), `ler_pagina` (texto limpo de uma URL pública) |
-| Agente | `agente` (um sub-agente com a API da Anthropic que escolhe as ferramentas sozinho) |
+| Agente | `agente` (sub-agente que escolhe as ferramentas sozinho; usa OpenRouter com modelo gratuito por padrão, ou Anthropic) |
 
 ### Comandos `/prompt`
 
@@ -38,7 +38,7 @@ Cliente de IA ──HTTPS / Bearer──► /mcp (Vercel Function, stateless)
   JSON por cena_id          three-bvh-csg, GLB escrito  + three.js local, WebGL
                             à mão, STL/OBJ)             por software) → PNG
             ▼
-  Busca web (Tavily/Brave) · Agente (API Anthropic)
+  Busca web (Tavily/Brave) · Agente (OpenRouter `openrouter/free`; ou Anthropic)
 ```
 
 - `api/mcp.ts`: endpoint MCP (Streamable HTTP, modo stateless). Exposto como `/mcp`.
@@ -55,7 +55,7 @@ Eixo Y para cima (convenção do glTF). Unidades arbitrárias; para impressão, 
 ```bash
 npm install
 cp .env.example .env          # preencha pelo menos MCP_TOKEN
-npm test                      # 33 testes (inclui o endpoint MCP real)
+npm test                      # 38 testes (inclui o endpoint MCP real)
 CHROME_PATH=/caminho/do/chrome npm test   # inclui o teste de render com Chromium
 ```
 
@@ -67,7 +67,8 @@ Sem `UPSTASH_REDIS_REST_URL`, as cenas ficam só na memória (serve para testes)
 2. **Adicione o Redis**: Storage → Marketplace → Upstash (Redis). Conecte ao projeto; a integração cria as variáveis `KV_REST_API_URL` e `KV_REST_API_TOKEN`.
 3. **Defina as variáveis de ambiente** (Settings → Environment Variables):
    - `MCP_TOKEN`: obrigatório. Gere com `openssl rand -hex 32`.
-   - `ANTHROPIC_API_KEY` e `AGENT_MODEL` (opcional): para a ferramenta `agente`.
+   - `OPENROUTER_API_KEY` (recomendado): para a ferramenta `agente`, com o modelo gratuito `openrouter/free`. `OPENROUTER_MODEL` troca o modelo.
+   - `ANTHROPIC_API_KEY` (alternativa paga) e `AGENT_PROVIDER` (`openrouter` ou `anthropic`, opcional).
    - `TAVILY_API_KEY` ou `BRAVE_API_KEY`: para a busca web.
 4. **Faça o deploy** e confira `https://SEU-PROJETO.vercel.app/health`. Esperado: `autenticacao_configurada: true`, `persistencia: true`.
 
@@ -96,7 +97,8 @@ Exemplo de configuração JSON para clientes que aceitam servidores remotos com 
 - **Exportação inline:** arquivos acima de ~3,5 MB não são devolvidos pelo MCP. Reduza a resolução ou use STL binário.
 - **Textura por URL:** aceita só PNG ou JPEG públicos, de até 4 MB. Endereços internos são bloqueados.
 - **Booleanas:** operandos precisam ser malhas fechadas para resultados corretos. A inspeção avisa quando um objeto tem volume zero.
-- **Agente:** precisa de `ANTHROPIC_API_KEY`. Usa o mesmo conjunto de ferramentas do cliente, exceto o próprio `agente`.
+- **Agente:** precisa de `OPENROUTER_API_KEY` ou `ANTHROPIC_API_KEY`. Usa o mesmo conjunto de ferramentas do cliente, exceto o próprio `agente`.
+- **Modelos gratuitos:** o `openrouter/free` escolhe um modelo disponível a cada chamada, e nem todos suportam tool calling ou imagens. Se o agente falhar com "No endpoints found that support tool use", troque `OPENROUTER_MODEL` por outro modelo com suporte a ferramentas. O nome do modelo usado aparece na resposta do agente.
 
 ## Segurança
 

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bender-3d-mcp</title>
+<style>
+  :root { color-scheme: light dark; --fg:#111; --bg:#fafafa; --muted:#666; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#eee; --bg:#111; --muted:#999; } }
+  body { margin:0; font:16px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+  main { max-width:640px; margin:0 auto; padding:24px 16px; }
+  code { font-family: ui-monospace, monospace; }
+  .muted { color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>bender-3d-mcp</h1>
+  <p>Servidor MCP remoto para modelagem 3D. Não há interface web: conecte um cliente MCP.</p>
+  <ul>
+    <li>Endpoint MCP: <code>/mcp</code> (POST, cabeçalho <code>Authorization: Bearer &lt;token&gt;</code>)</li>
+    <li>Diagnóstico: <code>/health</code></li>
+  </ul>
+  <p class="muted">Documentação de instalação e uso no README do repositório.</p>
+</main>
+</body>
+</html>

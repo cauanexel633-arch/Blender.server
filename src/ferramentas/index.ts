@@ -22,7 +22,7 @@ const agente = definir({
   nome: "agente",
   titulo: "Agente de modelagem e pesquisa",
   descricao:
-    "Executa um pedido amplo com um agente que escolhe sozinho as ferramentas (criar, editar, texturizar, renderizar, pesquisar na web) e devolve o resultado. Use para tarefas de várias etapas, ex.: 'modele uma cadeira de madeira com medidas reais pesquisadas'. Requer ANTHROPIC_API_KEY. Pode levar dezenas de segundos: prefira pedidos específicos.",
+    "Executa um pedido amplo com um agente que escolhe sozinho as ferramentas (criar, editar, texturizar, renderizar, pesquisar na web) e devolve o resultado. Use para tarefas de várias etapas, ex.: 'modele uma cadeira de madeira com medidas reais pesquisadas'. Usa OpenRouter (modelo gratuito por padrão, via OPENROUTER_API_KEY) ou Anthropic (ANTHROPIC_API_KEY). Pode levar dezenas de segundos: prefira pedidos específicos.",
   schema: {
     instrucao: z.string().min(5).max(4000).describe("O que o agente deve fazer"),
     cena_id: z.string().optional().describe("Cena existente para o agente trabalhar (opcional)"),
