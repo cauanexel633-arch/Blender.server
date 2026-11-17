@@ -8,6 +8,7 @@ import {
   resumoExportacao,
 } from "../geometria/exportar.js";
 import { renderizarCena } from "../render/renderizar.js";
+import { LIMITE_ARQUIVO_BYTES, publicarExportacao } from "../armazenamento/arquivos.js";
 import { definir, texto } from "./tipos.js";
 import { campoCenaId, carregarCena } from "./comum.js";
 
@@ -55,7 +56,7 @@ export const ferramentasVisao = [
     descricao:
       "Exporta a cena em GLB (web, jogos, com cores e texturas), STL (impressão 3D, binário ou ASCII) ou OBJ (sem materiais). " +
       "Use escala para trocar a unidade (ex.: escala 0.1 de mm para cm) e base_no_chao=true para assentar o modelo em y=0 antes de imprimir ou publicar. " +
-      "Retorna o arquivo como recurso, com resumo de triângulos, dimensões finais e avisos. Limite inline de ~3,5 MB.",
+      "Retorna um link de download temporário (1 hora) com o arquivo, além de resumo de triângulos, dimensões finais e avisos. Sem armazenamento configurado, devolve o arquivo inline (limite de ~3,5 MB).",
     somenteLeitura: true,
     schema: {
       cena_id: campoCenaId,
@@ -92,15 +93,19 @@ export const ferramentasVisao = [
         mime = "text/plain";
         ext = "obj";
       }
-      if (dados.length > LIMITE_INLINE_BYTES) {
-        const sugestoes = [
-          a.formato !== "stl" ? "use formato 'stl' (binário, cerca de 50 bytes por triângulo)" : null,
-          "reduza `segmentos` nas primitivas e nas revoluções",
-          "use 'base_no_chao' e 'escala' só para ajustar posição e unidade: não diminuem o arquivo",
-        ].filter(Boolean);
+      if (dados.length > LIMITE_ARQUIVO_BYTES) {
         throw new Error(
-          `Arquivo com ${(dados.length / 1e6).toFixed(1)} MB (${resumo.triangulos} triângulos) excede o limite inline de ~3,5 MB. ` +
-            `Opções: ${sugestoes.join("; ")}.`,
+          `Arquivo com ${(dados.length / 1e6).toFixed(1)} MB (${resumo.triangulos} triângulos) excede o limite de ${LIMITE_ARQUIVO_BYTES / 1e6} MB. ` +
+            "Reduza `segmentos` nas primitivas e nas revoluções, ou exporte em STL binário.",
+        );
+      }
+      // Com Supabase configurado, o arquivo vai para o Storage e o cliente recebe um link.
+      // Sem ele, volta como recurso inline, limitado pelo tamanho da resposta MCP.
+      const link = await publicarExportacao(`${cena.id}.${ext}`, dados, mime);
+      if (!link && dados.length > LIMITE_INLINE_BYTES) {
+        throw new Error(
+          `Arquivo com ${(dados.length / 1e6).toFixed(1)} MB excede o limite inline de ~3,5 MB e o armazenamento não está configurado. ` +
+            "Reduza `segmentos` ou exporte em STL binário.",
         );
       }
       const nome = cena.nome.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w-]+/g, "_").replace(/^_+|_+$/g, "") || "modelo";
@@ -116,6 +121,14 @@ export const ferramentasVisao = [
         base_no_chao: a.base_no_chao,
         avisos: resumo.avisos,
       };
+      if (link) {
+        return [
+          {
+            type: "text",
+            text: JSON.stringify({ ...relatorio, download_url: link.url, link_expira_em: link.expira_em }, null, 2),
+          },
+        ];
+      }
       return [
         {
           type: "resource",
