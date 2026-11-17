@@ -1,51 +1,107 @@
-# Blender AI Cloud
+# bender-3d-mcp
 
-Cloud-first Blender automation service built around FastAPI, MCP Streamable HTTP, Blender Headless workers and Docker.
+Servidor **MCP remoto** para modelagem 3D, hospedado na **Vercel**. Não depende de nenhum computador ligado: a IA cria, edita, texturiza, renderiza (vê a imagem), mede, exporta e pesquisa na web por ferramentas.
 
-## Source code
+## O que ele faz
 
-The complete project source archive is provided in the ChatGPT conversation as `blender-ai-cloud-updated.zip`. Extract its `blender-ai-cloud/` directory into this repository to add the full source tree. The GitHub connector used for this session can create text files and Git objects, but cannot transfer the local binary archive directly; the final source import therefore requires the PowerShell Git commands below.
+| Área | Ferramentas |
+|---|---|
+| Cenas | `criar_cena`, `listar_cenas`, `obter_cena`, `apagar_cena` |
+| Criar | `criar_primitiva` (cubo, esfera, cilindro, cone, toro, cápsula, plano), `criar_extrusao`, `criar_revolucao`, `criar_booleana` (união, subtração, interseção) |
+| Editar | `transformar` (definir ou somar), `editar_objeto`, `duplicar_objeto`, `apagar_objeto` |
+| Colorir | `definir_material` (cor, metálico, rugosidade, opacidade, emissiva) |
+| Texturizar | `aplicar_textura` (procedural: xadrez, listras, bolinhas, gradiente, ruído; ou imagem por URL) |
+| Ver | `renderizar_cena` (PNG em frente, topo, lado ou isométrica) |
+| Medir | `inspecionar_cena` (dimensões, volume, triângulos, avisos de impressão) |
+| Exportar | `exportar_modelo` (GLB, STL binário/ASCII, OBJ) |
+| Pesquisar | `pesquisar_web` (Tavily ou Brave), `ler_pagina` (texto limpo de uma URL pública) |
+| Agente | `agente` (um sub-agente com a API da Anthropic que escolhe as ferramentas sozinho) |
 
-## Documentation
+### Comandos `/prompt`
 
-- [Complete interaction manual](docs/INTERACTIONS.md) — every MCP tool, HTTP endpoint, arguments, examples, workflows, limitations and security notes.
-- [Architecture and setup](README-project.md) — project overview, local development and deployment notes.
+Cada prompt MCP aparece no cliente como comando de barra e ensina a IA o fluxo certo:
 
-## Import the supplied project archive on Windows
+- `/guia`: convenções, fluxo padrão e regras de segurança.
+- `/modelar <objeto>`: modela com verificação visual a cada etapa.
+- `/texturizar <cena_id> <estilo>`: cores, materiais e texturas.
+- `/pesquisar <assunto>`: referências reais antes de modelar.
+- `/revisar_impressao <cena_id>`: checagem e exportação STL.
 
-Download and extract `blender-ai-cloud-updated.zip` from the conversation. Open PowerShell in the extracted `blender-ai-cloud` folder and run:
+## Arquitetura
 
-```powershell
-git clone https://github.com/cauanexel633-arch/Blender.server.git ..\Blender.server
-Copy-Item .\* ..\Blender.server\ -Recurse -Force
-Set-Location ..\Blender.server
-git add .
-git commit -m "feat: add Blender AI Cloud source"
-git push origin main
+```
+Cliente de IA ──HTTPS / Bearer──► /mcp (Vercel Function, stateless)
+                                     │
+            ┌────────────────────────┼──────────────────────────┐
+            ▼                        ▼                          ▼
+  Cenas (Upstash Redis)    Geometria (three.js +       Render (Chromium headless
+  JSON por cena_id          three-bvh-csg, GLB escrito  + three.js local, WebGL
+                            à mão, STL/OBJ)             por software) → PNG
+            ▼
+  Busca web (Tavily/Brave) · Agente (API Anthropic)
 ```
 
-Review the copied files before committing. Do not commit `.env`, API keys, worker tokens, generated assets, local databases or caches.
+- `api/mcp.ts`: endpoint MCP (Streamable HTTP, modo stateless). Exposto como `/mcp`.
+- `api/health.ts`: diagnóstico público, sem segredos. Exposto como `/health`.
+- `src/geometria/`: formas, CSG, GLB/STL/OBJ e texturas PNG (sem canvas).
+- `src/render/`: renderização em Chromium. O three.js vem do `node_modules`, não de CDN.
+- `src/ferramentas/`: cada ferramenta com validação zod. A mesma lista serve o cliente MCP e o agente.
+- `src/prompts/`: textos dos comandos `/prompt`.
 
-## Local development
+Eixo Y para cima (convenção do glTF). Unidades arbitrárias; para impressão, use 1 unidade = 1 mm.
 
-Requirements: Docker Desktop with WSL2 and Git. From the project root:
+## Rodar localmente
 
-```powershell
-Copy-Item .env.example .env
-# Set strong API_SECRET, MCP_ACCESS_TOKEN and WORKER_TOKEN values in .env
-.\scripts\start.ps1
+```bash
+npm install
+cp .env.example .env          # preencha pelo menos MCP_TOKEN
+npm test                      # 33 testes (inclui o endpoint MCP real)
+CHROME_PATH=/caminho/do/chrome npm test   # inclui o teste de render com Chromium
 ```
 
-Local endpoints:
-- API: http://localhost:8000
-- API docs: http://localhost:8000/docs
-- MCP: http://localhost:8001/mcp
-- Dashboard: http://localhost:3000
+Sem `UPSTASH_REDIS_REST_URL`, as cenas ficam só na memória (serve para testes). Em produção, use Redis.
 
-## Status and limitations
+## Deploy na Vercel
 
-This is an early development starter. Blender operations are declarative and restricted. Operator discovery does not guarantee that every UI operator works in background mode. Advanced sculpting, complete Geometry Nodes authoring, rigging, animation, physics workflows and production-grade multi-tenant isolation require further implementation and validation.
+1. **Importe o repositório** na Vercel (Add New → Project → este repositório). Framework: *Other*. Nenhum comando de build é necessário.
+2. **Adicione o Redis**: Storage → Marketplace → Upstash (Redis). Conecte ao projeto; a integração cria as variáveis `KV_REST_API_URL` e `KV_REST_API_TOKEN`.
+3. **Defina as variáveis de ambiente** (Settings → Environment Variables):
+   - `MCP_TOKEN`: obrigatório. Gere com `openssl rand -hex 32`.
+   - `ANTHROPIC_API_KEY` e `AGENT_MODEL` (opcional): para a ferramenta `agente`.
+   - `TAVILY_API_KEY` ou `BRAVE_API_KEY`: para a busca web.
+4. **Faça o deploy** e confira `https://SEU-PROJETO.vercel.app/health`. Esperado: `autenticacao_configurada: true`, `persistencia: true`.
 
-## Security
+### Conectar um cliente MCP
 
-Use strong independent API, MCP and worker tokens. Expose MCP only over HTTPS in production. Never expose worker credentials to AI clients or enable arbitrary Python execution from untrusted prompts. Keep `.env`, credentials, generated assets and local databases out of Git.
+- **URL:** `https://SEU-PROJETO.vercel.app/mcp`
+- **Cabeçalho:** `Authorization: Bearer SEU_MCP_TOKEN`
+
+Exemplo de configuração JSON para clientes que aceitam servidores remotos com cabeçalhos:
+
+```json
+{
+  "mcpServers": {
+    "bender-3d": {
+      "url": "https://SEU-PROJETO.vercel.app/mcp",
+      "headers": { "Authorization": "Bearer SEU_MCP_TOKEN" }
+    }
+  }
+}
+```
+
+## Limites e pontos de atenção
+
+- **Render no Vercel:** usa `@sparticuz/chromium` com WebGL por software. Testado localmente com Chrome real, ainda não testado na Vercel: confira os logs no primeiro uso. Se o tempo estourar, aumente `maxDuration` (plano que permitir) ou reduza `largura`/`altura`.
+- **Tempo limite:** cada função tem `maxDuration` de 60 s. Booleanas com malhas muito densas e o agente em pedidos longos podem estourar; use `segmentos` baixos para rascunhos.
+- **Exportação inline:** arquivos acima de ~3,5 MB não são devolvidos pelo MCP. Reduza a resolução ou use STL binário.
+- **Textura por URL:** aceita só PNG ou JPEG públicos, de até 4 MB. Endereços internos são bloqueados.
+- **Booleanas:** operandos precisam ser malhas fechadas para resultados corretos. A inspeção avisa quando um objeto tem volume zero.
+- **Agente:** precisa de `ANTHROPIC_API_KEY`. Usa o mesmo conjunto de ferramentas do cliente, exceto o próprio `agente`.
+
+## Segurança
+
+- Todo acesso ao `/mcp` exige o token. Sem `MCP_TOKEN` configurado, o servidor recusa tudo (falha fechada).
+- `apagar_cena` e `apagar_objeto` exigem `confirmar: true`. Operandos de booleana não podem ser apagados por engano.
+- Busca e leitura de páginas bloqueiam localhost, redes privadas e redirecionamentos para elas.
+- O render não tem acesso à rede: qualquer requisição que não seja o three.js local é bloqueada.
+- Nunca coloque chaves no código. Use só variáveis de ambiente.

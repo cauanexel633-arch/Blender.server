@@ -1,0 +1,31 @@
+{
+  "name": "bender-3d-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Servidor MCP remoto (Vercel) para criar, editar, texturizar, renderizar e exportar modelos 3D, com busca na web e agente.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "dev": "npx vercel dev"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@sparticuz/chromium": "153.0.0",
+    "@upstash/redis": "1.35.4",
+    "puppeteer-core": "24.15.0",
+    "three": "0.187.0",
+    "three-bvh-csg": "0.0.18",
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.3",
+    "@types/three": "0.187.0",
+    "@vercel/node": "5.3.6",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}
