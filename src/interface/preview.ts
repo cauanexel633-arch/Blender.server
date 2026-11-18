@@ -171,7 +171,7 @@ function caixaTexto(el: ElementoUI, modificadores: ElementoUI[]): string {
   return `<div style="width:100%;height:100%;display:flex;justify-content:${x};align-items:${y};${estiloTexto(el, modificadores)}">`;
 }
 
-function corpoElemento(el: ElementoUI, modificadores: ElementoUI[], filhos: string): string {
+function corpoElemento(el: ElementoUI, modificadores: ElementoUI[], filhos: string, estiloLayoutInterno = ""): string {
   const p = el.propriedades as Props;
   switch (el.classe) {
     case "TextLabel":
@@ -197,7 +197,7 @@ function corpoElemento(el: ElementoUI, modificadores: ElementoUI[], filhos: stri
       const vazio = tela.every((v) => v === 0);
       const largura = vazio ? "100%" : comprimento(tela[0], tela[1]);
       const altura = vazio || p.AutomaticCanvasSize === "Y" || p.AutomaticCanvasSize === "XY" ? "auto" : comprimento(tela[2], tela[3]);
-      return `<div style="position:relative;width:${largura};min-height:${altura}">${filhos}</div>`;
+      return `<div style="position:relative;width:${largura};min-height:${altura};${estiloLayoutInterno}">${filhos}</div>`;
     }
     default:
       return filhos;
@@ -212,9 +212,11 @@ function renderElemento(ui: InterfaceUI, el: ElementoUI, dentroDeLayout: Element
   const raiz = el.pai_id === null;
 
   let estilo = estiloElemento(el, modificadores, dentroDeLayout, raiz, w, h);
-  if (layout) estilo += `;${estiloLayout(layout)}`;
+  // ScrollingFrame põe os filhos num div interno: o layout vai para ele, não para a moldura de rolagem.
+  const layoutNoCorpo = el.classe === "ScrollingFrame" && layout ? estiloLayout(layout) : "";
+  if (layout && !layoutNoCorpo) estilo += `;${estiloLayout(layout)}`;
   const interno = visiveis.map((f) => renderElemento(ui, f, layout, w, h)).join("");
-  const corpo = corpoElemento(el, modificadores, interno);
+  const corpo = corpoElemento(el, modificadores, interno, layoutNoCorpo);
   const nome = escapar(String((el.propriedades as Props).Name ?? el.classe));
   return `<div id="${el.id}" data-classe="${el.classe}" data-nome="${nome}" style="${estilo}">${corpo}</div>`;
 }

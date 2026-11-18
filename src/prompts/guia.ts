@@ -81,6 +81,6 @@ INTERFACES (telas no estilo do Roblox Studio)
 - exportar_interface só funciona com o preview_id do último preview e confirmar=true, depois da aprovação. Formatos: luau (LocalScript para StarterPlayerScripts) e json.
 - O preview é uma aproximação: fontes usam fontes do sistema, imagens aparecem como blocos e cantos e espaçamentos usam porcentagens.
 - apagar_elemento_ui e apagar_interface exigem confirmar=true.
-- AGENTES DE INTERFACE: agente_interface (papel design, organizacao ou qualidade) melhora a interface e aplica as mudanças direto. revisar_interface lista problemas de layout e contraste sem alterar nada. Depois de um agente, sempre gere o preview de novo.
+- AGENTES DE INTERFACE: agente_interface (papel design, organizacao ou qualidade) melhora a interface e aplica as mudanças direto. revisar_interface lista problemas de layout e contraste sem alterar nada. criar_interface_de_modelo cria base pronta (menu_principal, hud_jogo, dialogo, inventario). agente_criador_interface cria a tela inteira a partir de uma descrição: vê o preview em imagem, corrige e devolve o preview final. Depois de um agente, sempre gere o preview de novo.
 
 Quando o usuário pedir algo vago, faça um plano curto em etapas, execute e mostre o render final com um resumo do que foi feito.`;
