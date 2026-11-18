@@ -74,7 +74,7 @@ Sem `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`, as cenas ficam só na memória
    - `MCP_TOKEN`: obrigatório. Gere com `openssl rand -hex 32`.
    - `OPENROUTER_API_KEY` (recomendado): para a ferramenta `agente`, com o modelo gratuito `openrouter/free`. `OPENROUTER_MODEL` troca o modelo.
    - `ANTHROPIC_API_KEY` (alternativa paga) e `AGENT_PROVIDER` (`openrouter` ou `anthropic`, opcional).
-   - `TAVILY_API_KEY` ou `BRAVE_API_KEY`: para a busca web.
+   - A busca web é gratuita e não precisa de chave: usa o DuckDuckGo e, como alternativa, a Wikipédia.
    - `PUBLIC_URL`: endereço público do projeto, por exemplo `https://SEU-PROJETO.vercel.app`. Usado nos metadados OAuth. Sem ele, o servidor usa o host da requisição.
 4. **Faça o deploy** e confira `https://SEU-PROJETO.vercel.app/health`. Esperado: `autenticacao_configurada: true`, `persistencia: true`.
 

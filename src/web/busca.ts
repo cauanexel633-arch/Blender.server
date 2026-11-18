@@ -106,35 +106,79 @@ export function htmlParaTexto(html: string): { titulo: string; texto: string } {
   return { titulo: decodificarEntidades(titulo), texto };
 }
 
-/** Busca na web: usa Tavily se TAVILY_API_KEY existir, senão Brave Search (BRAVE_API_KEY). */
+/**
+ * Busca na web sem chave de API. Usa o DuckDuckGo (versão HTML) e, se ele não responder ou não
+ * devolver nada, a Wikipédia em português como alternativa.
+ */
 export async function pesquisarWeb(consulta: string, quantidade: number): Promise<ResultadoBusca[]> {
-  const tavily = process.env.TAVILY_API_KEY;
-  const brave = process.env.BRAVE_API_KEY;
-
-  if (tavily) {
-    const resposta = await fetch("https://api.tavily.com/search", {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${tavily}` },
-      body: JSON.stringify({ query: consulta, max_results: quantidade, search_depth: "basic" }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    if (!resposta.ok) throw new Error(`Tavily respondeu HTTP ${resposta.status}`);
-    const dados = (await resposta.json()) as { results?: { title: string; url: string; content: string }[] };
-    return (dados.results ?? []).map((r) => ({ titulo: r.title, url: r.url, trecho: r.content }));
+  const erros: string[] = [];
+  try {
+    const resultados = await pesquisarDuckDuckGo(consulta, quantidade);
+    if (resultados.length > 0) return resultados;
+  } catch (erro) {
+    erros.push(`DuckDuckGo: ${(erro as Error).message}`);
   }
-
-  if (brave) {
-    const params = new URLSearchParams({ q: consulta, count: String(quantidade) });
-    const resposta = await fetch(`https://api.search.brave.com/res/v1/web/search?${params}`, {
-      headers: { accept: "application/json", "x-subscription-token": brave },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    if (!resposta.ok) throw new Error(`Brave respondeu HTTP ${resposta.status}`);
-    const dados = (await resposta.json()) as { web?: { results?: { title: string; url: string; description?: string }[] } };
-    return (dados.web?.results ?? []).map((r) => ({ titulo: r.title, url: r.url, trecho: r.description ?? "" }));
+  try {
+    return await pesquisarWikipedia(consulta, quantidade);
+  } catch (erro) {
+    erros.push(`Wikipédia: ${(erro as Error).message}`);
   }
+  throw new Error(`Busca web indisponível (${erros.join("; ")})`);
+}
 
-  throw new Error("Busca web não configurada: defina TAVILY_API_KEY ou BRAVE_API_KEY");
+const CABECALHOS_BUSCA = {
+  "user-agent": "Mozilla/5.0 (compatible; bender-3d-mcp/1.0)",
+  accept: "text/html,application/json;q=0.9",
+  "accept-language": "pt-BR,pt;q=0.9,en;q=0.8",
+};
+
+function limparHtml(trecho: string): string {
+  return decodificarEntidades(trecho.replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
+}
+
+async function pesquisarDuckDuckGo(consulta: string, quantidade: number): Promise<ResultadoBusca[]> {
+  const resposta = await fetch("https://html.duckduckgo.com/html/", {
+    method: "POST",
+    headers: { ...CABECALHOS_BUSCA, "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ q: consulta, kl: "br-pt" }).toString(),
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+  const html = await resposta.text();
+
+  const links = [...html.matchAll(/<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)];
+  const trechos = [...html.matchAll(/<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g)];
+  const resultados: ResultadoBusca[] = [];
+  links.forEach((m, i) => {
+    // O DuckDuckGo embrulha o endereço real num redirecionamento com o parâmetro uddg.
+    const href = decodificarEntidades(m[1]);
+    const url = new URL(href, "https://duckduckgo.com").searchParams.get("uddg") ?? href;
+    if (!/^https?:\/\//.test(url)) return;
+    resultados.push({ titulo: limparHtml(m[2]), url, trecho: trechos[i] ? limparHtml(trechos[i][1]) : "" });
+  });
+  return resultados.slice(0, quantidade);
+}
+
+async function pesquisarWikipedia(consulta: string, quantidade: number): Promise<ResultadoBusca[]> {
+  const params = new URLSearchParams({
+    action: "query",
+    list: "search",
+    srsearch: consulta,
+    srlimit: String(quantidade),
+    format: "json",
+    origin: "*",
+  });
+  const resposta = await fetch(`https://pt.wikipedia.org/w/api.php?${params}`, {
+    headers: CABECALHOS_BUSCA,
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+  const dados = (await resposta.json()) as { query?: { search?: { title: string; snippet: string }[] } };
+  return (dados.query?.search ?? []).map((r) => ({
+    titulo: r.title,
+    url: `https://pt.wikipedia.org/wiki/${encodeURIComponent(r.title.replace(/ /g, "_"))}`,
+    trecho: limparHtml(r.snippet),
+  }));
 }
 
 /** Lê uma página e devolve texto limpo, truncado em `maxCaracteres`. */
