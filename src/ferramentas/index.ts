@@ -12,6 +12,7 @@ import { ferramentasPesquisa } from "./pesquisa.js";
 import { definir, texto, type Ferramenta } from "./tipos.js";
 import { ferramentasVfx } from "./vfx.js";
 import { ferramentasVisao } from "./visao.js";
+import { ferramentasInterface } from "./interface.js";
 import { ferramentasVfx3d } from "./vfx3d.js";
 
 /** Ferramentas diretas, usadas pelo cliente MCP e também pelo agente interno. */
@@ -27,6 +28,7 @@ export const ferramentasBase: Ferramenta[] = [
   ...ferramentasVisao,
   ...ferramentasVfx,
   ...ferramentasVfx3d,
+  ...ferramentasInterface,
   ...ferramentasPesquisa,
 ];
 

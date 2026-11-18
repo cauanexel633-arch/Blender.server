@@ -74,4 +74,12 @@ EFEITOS 3D (partículas em uma cena)
 - Limite: a soma de partículas × quadros (contando as duas propriedades) não pode passar de 200 mil amostras. Reduza quantidade ou duracao_quadros se o erro aparecer.
 - As partículas são esferas. Brilho com emissiva; a cor muda de cor_inicial para cor_final entre partículas, não ao longo da vida de cada uma.
 
+INTERFACES (telas no estilo do Roblox Studio)
+- Ordem: criar_interface (nome, largura, altura), adicionar_elemento_ui para cada elemento, editar_elemento_ui para ajustar propriedades, depois gerar_preview_interface.
+- Nomes e formatos de propriedade seguem o Roblox Studio: Position e Size como UDim2 [escala_x, offset_x, escala_y, offset_y]; cores "#rrggbb"; Font e enums pelo nome do item. Use listar_propriedades_ui para ver a lista de uma classe.
+- OBRIGATÓRIO: antes de exportar, gere o preview, mostre a imagem ao usuário e pergunte se pode implementar esse modelo. Qualquer alteração depois do preview exige novo preview.
+- exportar_interface só funciona com o preview_id do último preview e confirmar=true, depois da aprovação. Formatos: luau (LocalScript para StarterPlayerScripts) e json.
+- O preview é uma aproximação: fontes usam fontes do sistema, imagens aparecem como blocos e cantos e espaçamentos usam porcentagens.
+- apagar_elemento_ui e apagar_interface exigem confirmar=true.
+
 Quando o usuário pedir algo vago, faça um plano curto em etapas, execute e mostre o render final com um resumo do que foi feito.`;
