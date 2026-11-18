@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { LIMITE_AMOSTRAS, poseNoQuadro, propriedadesAnimadas, temAnimacao } from "../animacao/cena3d.js";
+import { agruparChaves, LIMITE_AMOSTRAS, poseComChaves, PROPRIEDADES_3D, temAnimacao } from "../animacao/cena3d.js";
+import { expandirEfeitos } from "../vfx3d/efeitos.js";
 import { construirGeometriaObjeto } from "./construir.js";
 import { gerarGlb, type MalhaGlb } from "./glb.js";
 import { gerarTexturaPng } from "./png.js";
@@ -131,7 +132,8 @@ async function resolverImagem(material: Material): Promise<MalhaGlb["imagem"]> {
   return { ...imagem, escala: textura.escala };
 }
 
-export async function gerarGlbDaCena(cena: Cena, opcoes: OpcoesExportacao = OPCOES_PADRAO): Promise<Buffer> {
+export async function gerarGlbDaCena(cenaBase: Cena, opcoes: OpcoesExportacao = OPCOES_PADRAO): Promise<Buffer> {
+  const cena = expandirEfeitos(cenaBase);
   if (temAnimacao(cena)) return gerarGlbAnimadoDaCena(cena, opcoes);
   const prontas: MalhaGlb[] = [];
   for (const m of malhasParaExportar(cena, opcoes)) {
@@ -311,7 +313,11 @@ async function gerarGlbAnimadoDaCena(cena: Cena, opcoes: OpcoesExportacao): Prom
   if (visiveis.length === 0) throw new Error("Nenhum objeto visível para exportar");
 
   const quadros = animacao.duracao_quadros;
-  const amostras = visiveis.reduce((total, o) => total + quadros * propriedadesAnimadas(cena, o.id).length, 0);
+  const grupos = agruparChaves(cena);
+  const amostras = visiveis.reduce(
+    (total, o) => total + quadros * new Set((grupos.get(o.id) ?? []).map((c) => c.propriedade)).size,
+    0,
+  );
   if (amostras > LIMITE_AMOSTRAS) {
     throw new Error(`A animação tem ${amostras} amostras. O limite é ${LIMITE_AMOSTRAS}; reduza a duração ou os keyframes.`);
   }
@@ -320,9 +326,13 @@ async function gerarGlbAnimadoDaCena(cena: Cena, opcoes: OpcoesExportacao): Prom
   let menorY = Infinity;
   for (const objeto of visiveis) {
     const geometria = construirGeometriaObjeto(cena, { ...objeto, transformacao: IDENTIDADE });
-    const sequencia = Array.from({ length: quadros }, (_, q) => poseNoQuadro(cena, objeto, q));
+    const chavesDoObjeto = grupos.get(objeto.id) ?? [];
+    const usadas = new Set(chavesDoObjeto.map((c) => c.propriedade));
+    const sequencia = Array.from({ length: quadros }, (_, q) =>
+      poseComChaves(objeto.transformacao, chavesDoObjeto, q),
+    );
     const trilhas: NonNullable<MalhaGlb["trilhas"]> = [];
-    for (const propriedade of propriedadesAnimadas(cena, objeto.id)) {
+    for (const propriedade of PROPRIEDADES_3D.filter((p) => usadas.has(p))) {
       if (propriedade === "posicao") trilhas.push({ caminho: "translation", valores: sequencia.flatMap((t) => t.posicao) });
       else if (propriedade === "escala") trilhas.push({ caminho: "scale", valores: sequencia.flatMap((t) => t.escala) });
       else trilhas.push({ caminho: "rotation", valores: sequencia.flatMap((t) => quaternionDeGraus(t.rotacao_graus)) });

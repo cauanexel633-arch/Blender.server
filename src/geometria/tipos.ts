@@ -127,11 +127,35 @@ export const AnimacaoCena = z.object({
   chaves: z.array(ChaveObjeto).default([]),
 });
 
+export const TIPOS_EFEITO_3D = ["explosao", "fogo", "fumaca", "faiscas", "neve", "chuva"] as const;
+
+/**
+ * Efeito de partículas 3D. Guardado como parâmetros; as partículas e os keyframes são gerados
+ * de forma determinística (mesma semente, mesmo resultado) na hora de exportar ou renderizar.
+ */
+export const EfeitoCena = z.object({
+  grupo: z.string().min(1).max(40),
+  tipo: z.enum(TIPOS_EFEITO_3D),
+  centro: Vetor3,
+  quantidade: z.number().int().min(1).max(300),
+  inicio_quadro: z.number().int().min(0).max(599),
+  duracao_quadros: z.number().int().min(1).max(200),
+  velocidade: z.number().min(0.05).max(5),
+  tamanho: z.number().min(0.001).max(10),
+  cor_inicial: Cor,
+  cor_final: Cor,
+  emissiva: z.boolean(),
+  semente: z.number().int(),
+  /** Área para neve e chuva: [largura, altura de queda, profundidade]. Ignorada pelos outros tipos. */
+  area: Vetor3,
+});
+
 export const Cena = z.object({
   id: z.string(),
   nome: z.string(),
   objetos: z.array(ObjetoCena),
   animacao: AnimacaoCena.optional(),
+  efeitos: z.array(EfeitoCena).optional(),
   criada_em: z.string(),
   atualizada_em: z.string(),
 });
@@ -143,4 +167,5 @@ export type Material = z.output<typeof Material>;
 export type ObjetoCena = z.output<typeof ObjetoCena>;
 export type Cena = z.output<typeof Cena>;
 export type ChaveObjeto = z.output<typeof ChaveObjeto>;
+export type EfeitoCena = z.output<typeof EfeitoCena>;
 export type AnimacaoCena = z.output<typeof AnimacaoCena>;

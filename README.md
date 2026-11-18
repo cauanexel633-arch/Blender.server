@@ -16,6 +16,7 @@ Servidor **MCP remoto** para modelagem 3D, hospedado na **Vercel**. Não depende
 | Exportar | `exportar_modelo` (GLB, STL binário/ASCII, OBJ), com `escala` e `base_no_chao` |
 | Animação 2D | `configurar_animacao` (fps, quadros), `animar_propriedade` (keyframes com interpolação linear, suave ou constante), `apagar_chaves`, `exportar_animacao` (GIF ou folha de sprites PNG, até 120 quadros) |
 | Animação 3D | `configurar_animacao_3d`, `animar_objeto` (keyframes de posição, rotação e escala), `apagar_chaves_objeto`, `exportar_animacao_3d` (GIF ou GLB animado), `renderizar_cena` com `quadro` |
+| Efeitos 3D | `criar_efeito_3d` (explosão, fogo, fumaça, faíscas, neve, chuva), `listar_efeitos_3d`, `apagar_efeito_3d` |
 | VFX 2D | `criar_efeito_2d` (explosão, fogo, fumaça, faíscas, brilho, chuva, neve), `apagar_efeito_2d` |
 | Criar 2D | `criar_desenho`, `adicionar_forma` (retângulo, elipse, linha, polígono, texto), `adicionar_imagem`, `adicionar_pixelart`, `editar_elemento`, `mover_camada`, `renderizar_desenho` (PNG), `exportar_desenho` (PNG ou SVG) |
 | Pesquisar | `pesquisar_web` (Tavily ou Brave), `ler_pagina` (texto limpo de uma URL pública) |

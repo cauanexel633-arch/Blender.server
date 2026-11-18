@@ -3,6 +3,7 @@ import { LIMITE_QUADROS, LIMITE_PIXELS_TOTAIS } from "../animacao/quadros.js";
 import { gerarGif } from "../animacao/gif.js";
 import { PROPRIEDADES_3D, operandosDeBooleanas } from "../animacao/cena3d.js";
 import { quantizarRgba } from "../animacao/quantizar.js";
+import { expandirEfeitos } from "../vfx3d/efeitos.js";
 import { LIMITE_ARQUIVO_BYTES, publicarExportacao } from "../armazenamento/arquivos.js";
 import { gerarGlbDaCena } from "../geometria/exportar.js";
 import { Vetor3 } from "../geometria/tipos.js";
@@ -125,7 +126,7 @@ export const ferramentasAnimacao3d = [
       base_no_chao: z.boolean().default(false).describe("No GLB, coloca a menor altura do modelo em y = 0 no quadro 0"),
     },
     executar: async (a): Promise<Conteudo[]> => {
-      const cena = await carregarCena(a.cena_id);
+      const cena = expandirEfeitos(await carregarCena(a.cena_id));
       const anim = cena.animacao;
       if (!anim || anim.chaves.length === 0) {
         throw new Error("A cena não tem keyframes. Use animar_objeto antes de exportar.");

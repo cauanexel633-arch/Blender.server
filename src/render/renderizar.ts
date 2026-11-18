@@ -4,6 +4,7 @@ import { dirname, resolve, sep } from "node:path";
 import chromium from "@sparticuz/chromium";
 import puppeteer, { type Browser, type HTTPRequest, type Page } from "puppeteer-core";
 import { gerarGlbDaCena, malhasDaCena } from "../geometria/exportar.js";
+import { expandirEfeitos } from "../vfx3d/efeitos.js";
 import type { Cena } from "../geometria/tipos.js";
 
 export type Camera = "frente" | "topo" | "lado" | "isometrica";
@@ -212,9 +213,10 @@ export async function renderizarCena(
   altura: number,
   quadro?: number,
 ): Promise<ResultadoRender> {
-  if (malhasDaCena(cena).length === 0) throw new Error("A cena não tem objetos visíveis para renderizar");
+  const expandida = expandirEfeitos(cena);
+  if (malhasDaCena(expandida).length === 0) throw new Error("A cena não tem objetos visíveis para renderizar");
   const q = quadro ?? 0;
-  const { navegador, pagina } = await abrirCena(cena, camera, largura, altura, [q]);
+  const { navegador, pagina } = await abrirCena(expandida, camera, largura, altura, [q]);
   try {
     await pagina.evaluate((quadroPagina: number) => {
       (window as unknown as { __render: (n: number) => void }).__render(quadroPagina);
@@ -237,8 +239,9 @@ export async function renderizarQuadrosCena(
   altura: number,
   quadros: number[],
 ): Promise<Buffer[]> {
-  if (malhasDaCena(cena).length === 0) throw new Error("A cena não tem objetos visíveis para renderizar");
-  const { navegador, pagina } = await abrirCena(cena, camera, largura, altura, quadros);
+  const expandida = expandirEfeitos(cena);
+  if (malhasDaCena(expandida).length === 0) throw new Error("A cena não tem objetos visíveis para renderizar");
+  const { navegador, pagina } = await abrirCena(expandida, camera, largura, altura, quadros);
   try {
     const saida: Buffer[] = [];
     for (const q of quadros) {
