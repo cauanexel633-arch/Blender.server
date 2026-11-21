@@ -12,6 +12,7 @@ import { ferramentasPesquisa } from "./pesquisa.js";
 import { definir, texto, type Ferramenta } from "./tipos.js";
 import { paraAgente } from "./imagem.js";
 import { ferramentasHabilidades } from "./habilidades.js";
+import { criarFerramentaRevisor } from "./revisor.js";
 import { ferramentasVfx } from "./vfx.js";
 import { ferramentasVisao } from "./visao.js";
 import { ferramentasInterface } from "./interface.js";
@@ -60,4 +61,4 @@ const agente = definir({
   },
 });
 
-export const todasFerramentas: Ferramenta[] = [...ferramentasBase, agente];
+export const todasFerramentas: Ferramenta[] = [...ferramentasBase, agente, criarFerramentaRevisor(ferramentasBase)];
