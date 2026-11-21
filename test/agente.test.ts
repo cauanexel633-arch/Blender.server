@@ -203,3 +203,24 @@ describe("chave do OpenRouter colada", () => {
     expect(() => criarOpenRouter("   ")).toThrow(/OPENROUTER_API_KEY está vazia/);
   });
 });
+
+describe("limite de uso do OpenRouter (429)", () => {
+  it("tenta de novo depois de 429 e envia modelos reserva", async () => {
+    const { criarOpenRouter } = await import("../src/agentes/provedores.js");
+    const corpos: any[] = [];
+    let chamadas = 0;
+    vi.stubGlobal("fetch", async (_url: string, init: any) => {
+      corpos.push(JSON.parse(init.body));
+      chamadas++;
+      if (chamadas === 1) return new Response("rate limited", { status: 429 });
+      return new Response(JSON.stringify({ choices: [{ message: { content: "pronto" } }] }), { status: 200 });
+    });
+    const p = criarOpenRouter("sk-or-teste", "google/gemma-4-26b-a4b-it:free");
+    const turno = await p.enviar("sistema", [], "instrucao", []);
+    expect(turno.textos).toEqual(["pronto"]);
+    expect(chamadas).toBe(2);
+    expect(corpos[0].models[0]).toBe("google/gemma-4-26b-a4b-it:free");
+    expect(corpos[0].models.length).toBeGreaterThan(1);
+    vi.unstubAllGlobals();
+  });
+});

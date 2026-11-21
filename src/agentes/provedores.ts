@@ -47,6 +47,9 @@ async function postarJson(url: string, cabecalhos: Record<string, string>, corpo
  * gratuito disponível por requisição; o nome real aparece em `model` na resposta.
  */
 export const MODELO_PADRAO_OPENROUTER = "google/gemma-4-26b-a4b-it:free";
+/** Modelos reserva, tentados pelo OpenRouter quando o principal falha (ex.: limite de uso gratuito). */
+export const MODELOS_RESERVA_OPENROUTER = ["nvidia/nemotron-3.5-super-vl:free", "openrouter/free"];
+const ESPERAS_429_MS = [1500, 3000];
 
 /** Limpa a chave colada: espaços, quebras de linha e o prefixo "Bearer " copiado junto. */
 export function normalizarChave(bruta: string): string {
@@ -104,20 +107,31 @@ export function criarOpenRouter(chaveBruta: string, modelo = process.env.OPENROU
         }
       }
 
-      const dados = await postarJson(
-        "https://openrouter.ai/api/v1/chat/completions",
-        cabecalhos,
-        {
-          model: modelo,
-          max_tokens: 4096,
-          messages: mensagens,
-          tools: ferramentas.map((f) => ({
-            type: "function",
-            function: { name: f.nome, description: f.descricao, parameters: esquemaDe(f) },
-          })),
-        },
-        "OpenRouter",
-      );
+      const corpo = {
+        model: modelo,
+        models: [modelo, ...MODELOS_RESERVA_OPENROUTER.filter((m) => m !== modelo)],
+        max_tokens: 4096,
+        messages: mensagens,
+        tools: ferramentas.map((f) => ({
+          type: "function",
+          function: { name: f.nome, description: f.descricao, parameters: esquemaDe(f) },
+        })),
+      };
+      const dados = await postarJson("https://openrouter.ai/api/v1/chat/completions", cabecalhos, corpo, "OpenRouter").catch(async (erro: Error) => {
+        // Limite de uso (429): espera um pouco e tenta de novo, até duas vezes.
+        if (!/HTTP 429/.test(erro.message)) throw erro;
+        let ultimo = erro;
+        for (const espera of ESPERAS_429_MS) {
+          await new Promise((r) => setTimeout(r, espera));
+          try {
+            return await postarJson("https://openrouter.ai/api/v1/chat/completions", cabecalhos, corpo, "OpenRouter");
+          } catch (novo) {
+            ultimo = novo as Error;
+            if (!/HTTP 429/.test(ultimo.message)) throw ultimo;
+          }
+        }
+        throw ultimo;
+      });
 
       const mensagem = dados.choices?.[0]?.message;
       if (!mensagem) throw new Error("OpenRouter não devolveu nenhuma escolha");
