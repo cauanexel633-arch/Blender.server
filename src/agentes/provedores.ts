@@ -48,7 +48,14 @@ async function postarJson(url: string, cabecalhos: Record<string, string>, corpo
  */
 export const MODELO_PADRAO_OPENROUTER = "google/gemma-4-26b-a4b-it:free";
 
-export function criarOpenRouter(chave: string, modelo = process.env.OPENROUTER_MODEL ?? MODELO_PADRAO_OPENROUTER): Provedor {
+/** Limpa a chave colada: espaços, quebras de linha e o prefixo "Bearer " copiado junto. */
+export function normalizarChave(bruta: string): string {
+  return bruta.trim().replace(/^bearer\s+/i, "").trim();
+}
+
+export function criarOpenRouter(chaveBruta: string, modelo = process.env.OPENROUTER_MODEL ?? MODELO_PADRAO_OPENROUTER): Provedor {
+  const chave = normalizarChave(chaveBruta);
+  if (!chave) throw new Error("OPENROUTER_API_KEY está vazia no servidor. Cole a chave do OpenRouter no campo, sem espaços.");
   const cabecalhos = {
     authorization: `Bearer ${chave}`,
     "http-referer": "https://bender-3d-mcp.vercel.app",

@@ -189,3 +189,17 @@ describe("agente com Anthropic (API simulada)", () => {
     expect((await obterLoja().listar()).map((c) => c.nome)).toEqual(["Anth"]);
   });
 });
+
+describe("chave do OpenRouter colada", () => {
+  it("remove prefixo Bearer, espaços e quebras de linha", async () => {
+    const { normalizarChave } = await import("../src/agentes/provedores.js");
+    expect(normalizarChave("  Bearer sk-or-abc \n")).toBe("sk-or-abc");
+    expect(normalizarChave("bearer   sk-or-xyz")).toBe("sk-or-xyz");
+    expect(normalizarChave("sk-or-plain")).toBe("sk-or-plain");
+  });
+
+  it("chave vazia falha com mensagem clara", async () => {
+    const { criarOpenRouter } = await import("../src/agentes/provedores.js");
+    expect(() => criarOpenRouter("   ")).toThrow(/OPENROUTER_API_KEY está vazia/);
+  });
+});
