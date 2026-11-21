@@ -10,7 +10,8 @@ export const ferramentasAudio = [
     descricao:
       "Busca sons e efeitos sonoros na Freesound, uma biblioteca com licenças livres (Creative Commons). Devolve título, autor, licença, duração, página do som e um link de prévia para ouvir. " +
       "Por padrão mostra só sons com uso comercial permitido. Não baixa nada: para baixar, use baixar_audio depois que o usuário escolher e confirmar. " +
-      "A IA não consegue ouvir o som; descreva ao usuário pelas tags, título e duração e deixe a escuta com ele, pelo link de prévia.",
+      "A IA não consegue ouvir o som; descreva ao usuário pelas tags, título e duração e deixe a escuta com ele, pelo link de prévia. " +
+      "Cada som traz previa_url, titulo, autor, licenca e pagina: guarde esses campos para passar a baixar_audio.",
     somenteLeitura: true,
     schema: {
       consulta: z.string().min(2).max(200).describe("Ex.: 'explosão curta', 'passos de madeira', 'chuva na janela'"),
@@ -39,18 +40,46 @@ export const ferramentasAudio = [
     descricao:
       "Baixa a prévia MP3 de um som da Freesound (id devolvido por buscar_audio) e guarda com link temporário. " +
       "Só use depois que o usuário escolher o som E confirmar que quer baixar. Exige confirmar=true. " +
+      "Para ser mais rápido, passe também previa_url, titulo, autor, licenca e pagina exatamente como vieram de buscar_audio. " +
       "A qualidade é a da prévia (MP3 de 192 kbps ou menos), não o arquivo original. Devolve título, autor, licença e o texto de atribuição, que deve ser mantido quando o som for usado.",
     schema: {
       id: z.number().int().positive().describe("ID do som (campo 'id' de buscar_audio)"),
+      previa_url: z
+        .string()
+        .url()
+        .optional()
+        .describe("Opcional, mais rápido: link 'previa_url' de buscar_audio. Com os campos de atribuição abaixo, não precisa de nova consulta"),
+      titulo: z.string().max(200).optional().describe("Título vindo de buscar_audio (usado com previa_url)"),
+      autor: z.string().max(100).optional().describe("Autor vindo de buscar_audio (usado com previa_url)"),
+      licenca: z.string().max(100).optional().describe("Licença vinda de buscar_audio (usado com previa_url)"),
+      pagina: z.string().max(300).optional().describe("Página do som vinda de buscar_audio (usado com previa_url)"),
+      duracao_seg: z.number().min(0).optional(),
+      uso_comercial: z.boolean().optional(),
       confirmar: z
         .boolean()
         .refine((v) => v === true, { message: "Use true para confirmar" })
         .describe("Deve ser exatamente true, e só depois da confirmação do usuário"),
     },
     executar: async (a): Promise<Conteudo[]> => {
-      const som = await obterSom(a.id);
+      const completo = a.previa_url && a.titulo && a.autor && a.licenca && a.pagina;
+      const inicio = Date.now();
+      // Com os dados de buscar_audio, pula a consulta de metadados: uma chamada a menos ao Freesound.
+      const som = completo
+        ? {
+            id: a.id,
+            titulo: a.titulo!,
+            autor: a.autor!,
+            licenca: a.licenca!,
+            uso_comercial: a.uso_comercial ?? false,
+            duracao_seg: a.duracao_seg ?? 0,
+            pagina: a.pagina!,
+            previa_url: a.previa_url!,
+            tags: [] as string[],
+          }
+        : await obterSom(a.id);
       if (!som.previa_url) throw new Error("Esse som não tem prévia disponível para download");
       const dados = await baixarPrevia(som.previa_url);
+      console.log(JSON.stringify({ evento: "baixar_audio", id: a.id, usou_atalho: Boolean(completo), ms: Date.now() - inicio }));
       if (dados.length > LIMITE_ARQUIVO_BYTES) throw new Error("Arquivo grande demais");
 
       const atribuicao = `"${som.titulo}" por ${som.autor} (${som.licenca}), Freesound: ${som.pagina}`;

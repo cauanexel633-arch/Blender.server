@@ -6,6 +6,7 @@
 
 const BASE = "https://freesound.org/apiv2";
 const TIMEOUT_MS = 15_000;
+const TIMEOUT_METADADOS_MS = 8_000;
 export const LIMITE_PREVIA_BYTES = 15 * 1024 * 1024;
 
 export interface Som {
@@ -41,12 +42,12 @@ function chave(): string {
   return valor;
 }
 
-async function pedir(caminho: string, parametros: Record<string, string>): Promise<unknown> {
+async function pedir(caminho: string, parametros: Record<string, string>, timeout = TIMEOUT_MS): Promise<unknown> {
   const url = new URL(`${BASE}${caminho}`);
   for (const [k, v] of Object.entries(parametros)) url.searchParams.set(k, v);
   const resposta = await fetch(url, {
     headers: { Authorization: `Token ${chave()}` },
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeout),
   });
   if (!resposta.ok) throw new Error(`Freesound respondeu ${resposta.status}`);
   return resposta.json();
@@ -103,17 +104,30 @@ export async function buscarSons(opcoes: OpcoesBusca): Promise<Som[]> {
 export async function obterSom(id: number): Promise<Som> {
   const bruto = (await pedir(`/sounds/${id}/`, {
     fields: "id,name,username,license,url,duration,previews,tags",
-  })) as BrutoSom;
+  }, TIMEOUT_METADADOS_MS)) as BrutoSom;
   return paraSom(bruto);
+}
+
+/** Só aceita prévias servidas pela própria Freesound (https), para o servidor não baixar URLs arbitrárias. */
+export function previaPermitida(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && (u.hostname === "freesound.org" || u.hostname.endsWith(".freesound.org"));
+  } catch {
+    return false;
+  }
 }
 
 /** Baixa a prévia MP3 de um som, com limite de tamanho. */
 export async function baixarPrevia(url: string): Promise<Buffer> {
+  if (!previaPermitida(url)) throw new Error("A prévia precisa ser um endereço https da Freesound");
+  const inicio = Date.now();
   const resposta = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (!resposta.ok) throw new Error(`Não foi possível baixar a prévia (${resposta.status})`);
   const declarado = Number(resposta.headers.get("content-length") ?? 0);
   if (declarado > LIMITE_PREVIA_BYTES) throw new Error("Arquivo de áudio grande demais");
   const dados = Buffer.from(await resposta.arrayBuffer());
+  console.log(JSON.stringify({ evento: "baixar_previa", ms: Date.now() - inicio, bytes: dados.length }));
   if (dados.length > LIMITE_PREVIA_BYTES) throw new Error("Arquivo de áudio grande demais");
   return dados;
 }

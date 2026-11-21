@@ -10,7 +10,7 @@ const sonsBrutos = [
     license: "http://creativecommons.org/licenses/by/4.0/",
     url: "https://freesound.org/s/101/",
     duration: 2.34,
-    previews: { "preview-hq-mp3": "https://cdn.test/101.mp3", "preview-lq-mp3": "https://cdn.test/101-lq.mp3" },
+    previews: { "preview-hq-mp3": "https://cdn.freesound.org/previews/101.mp3", "preview-lq-mp3": "https://cdn.freesound.org/previews/101-lq.mp3" },
     tags: ["explosion", "boom"],
   },
   {
@@ -20,7 +20,7 @@ const sonsBrutos = [
     license: "http://creativecommons.org/licenses/by-nc/3.0/",
     url: "https://freesound.org/s/102/",
     duration: 4,
-    previews: { "preview-hq-mp3": "https://cdn.test/102.mp3" },
+    previews: { "preview-hq-mp3": "https://cdn.freesound.org/previews/102.mp3" },
     tags: ["steps"],
   },
   {
@@ -30,7 +30,7 @@ const sonsBrutos = [
     license: "https://creativecommons.org/publicdomain/zero/1.0/",
     url: "https://freesound.org/s/103/",
     duration: 120,
-    previews: { "preview-lq-mp3": "https://cdn.test/103.mp3" },
+    previews: { "preview-lq-mp3": "https://cdn.freesound.org/previews/103.mp3" },
     tags: ["rain"],
   },
 ];
@@ -81,7 +81,7 @@ describe("buscar_audio", () => {
     const r = await ferramenta("buscar_audio").executar({ consulta: "explosao", quantidade: 5, apenas_uso_comercial: true });
     const dados = JSON.parse((r[0] as { text: string }).text);
     expect(dados.sons.map((s: { id: number }) => s.id)).toEqual([101, 103]);
-    expect(dados.sons[0]).toMatchObject({ autor: "autorA", licenca: "CC BY", previa_url: "https://cdn.test/101.mp3" });
+    expect(dados.sons[0]).toMatchObject({ autor: "autorA", licenca: "CC BY", previa_url: "https://cdn.freesound.org/previews/101.mp3" });
   });
 
   it("filtra por duração máxima", async () => {
