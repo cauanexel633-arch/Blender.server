@@ -42,10 +42,13 @@ async function postarJson(url: string, cabecalhos: Record<string, string>, corpo
 /* ------------------------------ OpenRouter ------------------------------ */
 
 /**
- * OpenRouter usa a API no formato OpenAI. O modelo padrão `openrouter/free` escolhe um modelo
+ * OpenRouter usa a API no formato OpenAI. O modelo padrão é o Gemma 4 gratuito, com ferramentas e imagens.
+ * `openrouter/free` escolhe um modelo
  * gratuito disponível por requisição; o nome real aparece em `model` na resposta.
  */
-export function criarOpenRouter(chave: string, modelo = process.env.OPENROUTER_MODEL ?? "openrouter/free"): Provedor {
+export const MODELO_PADRAO_OPENROUTER = "google/gemma-4-26b-a4b-it:free";
+
+export function criarOpenRouter(chave: string, modelo = process.env.OPENROUTER_MODEL ?? MODELO_PADRAO_OPENROUTER): Provedor {
   const cabecalhos = {
     authorization: `Bearer ${chave}`,
     "http-referer": "https://bender-3d-mcp.vercel.app",

@@ -22,7 +22,7 @@ describe("seleção de provedor", () => {
     process.env.ANTHROPIC_API_KEY = "an";
     const p = escolherProvedor();
     expect(p.nome).toBe("openrouter");
-    expect(p.modelo).toBe("openrouter/free");
+    expect(p.modelo).toBe("google/gemma-4-26b-a4b-it:free");
   });
 
   it("usa Anthropic quando só ela está configurada", () => {

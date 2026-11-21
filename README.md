@@ -45,7 +45,7 @@ Cliente de IA ──HTTPS / Bearer──► /mcp (Vercel Function, stateless)
   JSON por cena_id          three-bvh-csg, GLB escrito  + three.js local, WebGL
                             à mão, STL/OBJ)             por software) → PNG
             ▼
-  Busca web (Tavily/Brave) · Agente (OpenRouter `openrouter/free`; ou Anthropic)
+  Busca web (DuckDuckGo/Wikipédia) · Agente (OpenRouter, modelo gratuito Gemma 4 com ferramentas e imagens; ou Anthropic)
 ```
 
 - `api/mcp.ts`: endpoint MCP (Streamable HTTP, modo stateless). Exposto como `/mcp`.
@@ -75,7 +75,7 @@ Sem `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`, as cenas ficam só na memória
 3. **Defina as variáveis de ambiente** (Settings → Environment Variables):
    - `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`: armazenamento das cenas. A chave service_role é secreta: nunca a coloque no cliente MCP nem no código.
    - `MCP_TOKEN`: obrigatório. Gere com `openssl rand -hex 32`.
-   - `OPENROUTER_API_KEY` (recomendado): para a ferramenta `agente`, com o modelo gratuito `openrouter/free`. `OPENROUTER_MODEL` troca o modelo.
+   - `OPENROUTER_API_KEY` (recomendado): para a ferramenta `agente`, com o modelo gratuito `google/gemma-4-26b-a4b-it:free` (padrão). `OPENROUTER_MODEL` troca o modelo.
    - `ANTHROPIC_API_KEY` (alternativa paga) e `AGENT_PROVIDER` (`openrouter` ou `anthropic`, opcional).
    - A busca web é gratuita e não precisa de chave: usa o DuckDuckGo e, como alternativa, a Wikipédia.
    - `PUBLIC_URL`: endereço público do projeto, por exemplo `https://SEU-PROJETO.vercel.app`. Usado nos metadados OAuth. Sem ele, o servidor usa o host da requisição.
