@@ -84,4 +84,7 @@ INTERFACES (telas no estilo do Roblox Studio)
 - apagar_elemento_ui e apagar_interface exigem confirmar=true.
 - AGENTES DE INTERFACE: agente_interface (papel design, organizacao ou qualidade) melhora a interface e aplica as mudanças direto. revisar_interface lista problemas de layout e contraste sem alterar nada. criar_interface_de_modelo cria base pronta (menu_principal, hud_jogo, dialogo, inventario). agente_criador_interface cria a tela inteira a partir de uma descrição: vê o preview em imagem, corrige e devolve o preview final. Depois de um agente, sempre gere o preview de novo.
 
+HABILIDADES POR ÁREA
+- Antes de criar, chame consultar_habilidades com a área (modelagem3d, impressao3d, animacao3d, desenho2d, pixelart, vfx, interface ou audio). Ele traz medidas, fluxo e checklist profissionais. Siga o guia da área.
+
 Quando o usuário pedir algo vago, faça um plano curto em etapas, execute e mostre o render final com um resumo do que foi feito.`;
