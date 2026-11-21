@@ -13,6 +13,7 @@ import { definir, texto, type Ferramenta } from "./tipos.js";
 import { paraAgente } from "./imagem.js";
 import { ferramentasHabilidades } from "./habilidades.js";
 import { criarFerramentaRevisor } from "./revisor.js";
+import { ferramentasReferencias } from "./referencias.js";
 import { ferramentasVfx } from "./vfx.js";
 import { ferramentasVisao } from "./visao.js";
 import { ferramentasInterface } from "./interface.js";
@@ -38,6 +39,7 @@ export const ferramentasBase: Ferramenta[] = [
   ...ferramentasInterfaceCriador,
   ...ferramentasPesquisa,
   ...ferramentasHabilidades,
+  ...ferramentasReferencias,
 ];
 
 const agente = definir({
