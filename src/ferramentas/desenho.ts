@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { publicarExportacao, LIMITE_ARQUIVO_BYTES } from "../armazenamento/arquivos.js";
+import { CAMPO_FORMATO_IMAGEM, conteudoImagem } from "./imagem.js";
 import { aplicarQuadro } from "../animacao/avaliar.js";
 import { desenhoParaSvg } from "../desenho2d/svg.js";
 import { rasterizarSvg } from "../desenho2d/render.js";
@@ -378,14 +379,15 @@ export const ferramentasDesenho = [
       desenho_id: campoDesenhoId,
       escala: z.number().int().min(1).max(4).default(1).describe("Multiplicador de resolução (1 a 4)"),
       quadro: z.number().int().min(0).default(0).describe("Quadro da animação a mostrar (0 é o primeiro)"),
+      formato: CAMPO_FORMATO_IMAGEM,
     },
-    executar: async ({ desenho_id, escala, quadro }) => {
+    executar: async ({ desenho_id, escala, quadro, formato }) => {
       const desenho = await carregarDesenho(desenho_id);
       const imagens = await resolverImagens(desenho);
       const svg = desenhoParaSvg(aplicarQuadro(desenho, quadro), imagens);
       const png = await rasterizarSvg(svg, desenho.largura, desenho.altura, escala, desenho.fundo === null);
       const conteudo: Conteudo[] = [
-        { type: "image", data: png.toString("base64"), mimeType: "image/png" },
+        ...(await conteudoImagem(`${desenho.id}-${escala}x-q${quadro}.png`, png, formato)),
         { type: "text", text: `Desenho ${desenho.id} (${desenho.nome}), ${desenho.largura}x${desenho.altura}, escala ${escala}, quadro ${quadro}` },
       ];
       return conteudo;

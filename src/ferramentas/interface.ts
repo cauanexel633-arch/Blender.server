@@ -19,6 +19,7 @@ import {
   type InterfaceUI,
 } from "../interface/tipos.js";
 import { definir, texto, type Conteudo } from "./tipos.js";
+import { CAMPO_FORMATO_IMAGEM, conteudoImagem } from "./imagem.js";
 
 const campoInterfaceId = z.string().min(1).describe("ID da interface (retornado por criar_interface)");
 const campoElementoId = z.string().min(1).describe("ID do elemento (retornado por adicionar_elemento_ui ou obter_interface)");
@@ -244,28 +245,27 @@ export const ferramentasInterface = [
     descricao:
       "Renderiza a interface como imagem, do jeito que ficará no jogo. OBRIGATÓRIO antes de exportar: mostre a imagem ao usuário e pergunte se pode implementar esse modelo. Qualquer alteração depois exige novo preview.",
     somenteLeitura: true,
-    schema: { interface_id: campoInterfaceId },
-    executar: async ({ interface_id }): Promise<Conteudo[]> => {
+    schema: { interface_id: campoInterfaceId, formato: CAMPO_FORMATO_IMAGEM },
+    executar: async ({ interface_id, formato }): Promise<Conteudo[]> => {
       const ui = await carregar(interface_id);
       const png = await renderizarPreviewPng(ui);
       ui.preview_hash = hashEstadoUI(ui);
       await obterLojaInterfaces().salvar(ui);
-      const link = png.length <= LIMITE_ARQUIVO_BYTES ? await publicarExportacao(`${ui.id}-preview.png`, png, "image/png") : null;
+      const imagem = await conteudoImagem(`${ui.id}-preview.png`, png, formato);
       return [
-        { type: "image", data: png.toString("base64"), mimeType: "image/png" },
         {
           type: "text",
           text: JSON.stringify(
             {
               ...resumoPreview(ui),
               preview_id: ui.preview_hash,
-              ...(link ? { preview_url: link.url, link_expira_em: link.expira_em } : {}),
               aviso: "Mostre o preview ao usuário e pergunte se pode implementar. Só exporte depois que ele confirmar.",
             },
             null,
             2,
           ),
         },
+        ...imagem,
       ];
     },
   }),

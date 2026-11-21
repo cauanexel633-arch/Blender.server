@@ -11,7 +11,7 @@ Servidor **MCP remoto** para modelagem 3D, hospedado na **Vercel**. Não depende
 | Editar | `transformar` (definir ou somar), `editar_objeto`, `duplicar_objeto`, `apagar_objeto` |
 | Colorir | `definir_material` (cor, metálico, rugosidade, opacidade, emissiva) |
 | Texturizar | `aplicar_textura` (procedural: xadrez, listras, bolinhas, gradiente, ruído; ou imagem por URL) |
-| Ver | `renderizar_cena` (PNG em frente, topo, lado ou isométrica) |
+| Ver | `renderizar_cena` (PNG em frente, topo, lado ou isométrica; devolve link de 1 hora, ou a imagem com `formato: "imagem"`) |
 | Medir | `inspecionar_cena` (dimensões, volume, triângulos, avisos de impressão) |
 | Exportar | `exportar_modelo` (GLB, STL binário/ASCII, OBJ), com `escala` e `base_no_chao` |
 | Animação 2D | `configurar_animacao` (fps, quadros), `animar_propriedade` (keyframes com interpolação linear, suave ou constante), `apagar_chaves`, `exportar_animacao` (GIF ou folha de sprites PNG, até 120 quadros) |

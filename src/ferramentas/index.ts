@@ -10,6 +10,7 @@ import { ferramentasMaterial } from "./material.js";
 import { ferramentasModelagem } from "./modelagem.js";
 import { ferramentasPesquisa } from "./pesquisa.js";
 import { definir, texto, type Ferramenta } from "./tipos.js";
+import { paraAgente } from "./imagem.js";
 import { ferramentasVfx } from "./vfx.js";
 import { ferramentasVisao } from "./visao.js";
 import { ferramentasInterface } from "./interface.js";
@@ -50,7 +51,7 @@ const agente = definir({
     const prefixo = a.cena_id ? `Trabalhe na cena "${a.cena_id}" (use obter_cena primeiro).\n\n` : "";
     const resultado = await executarAgente({
       instrucao: prefixo + a.instrucao,
-      ferramentas: ferramentasBase,
+      ferramentas: ferramentasBase.map(paraAgente),
       maxPassos: a.max_passos,
     });
     return texto(resultado);

@@ -9,6 +9,7 @@ CONVENÇÕES
 - Eixo Y aponta para cima. X é a largura, Z é a profundidade.
 - Dimensões em unidades arbitrárias. Se o modelo for para impressão 3D, trate 1 unidade = 1 mm.
 - Rotação em graus, ordem XYZ. Cores em hexadecimal #rrggbb.
+- Prints: renderizar_cena, renderizar_desenho e gerar_preview_interface devolvem um LINK da imagem (válido 1 hora). Para ver a imagem direto na resposta, use formato 'imagem'. Sem armazenamento configurado, a imagem vem inline.
 - Cada cena tem um cena_id. Objetos têm objeto_id. Use obter_cena para ver os IDs antes de editar.
 
 FLUXO PADRÃO
@@ -17,7 +18,7 @@ FLUXO PADRÃO
 3. Combinar: criar_booleana (uniao, subtracao, interseccao). Operandos ficam ocultos.
 4. Posicionar e ajustar: transformar, editar_objeto, duplicar_objeto.
 5. Aparência: definir_material (cor, metalico, rugosidade, opacidade, emissiva) e aplicar_textura (procedural ou url).
-6. VERIFICAR: renderizar_cena e olhe a imagem. Corrija o que estiver errado antes de seguir.
+6. VERIFICAR: renderizar_cena (com formato imagem para ver a imagem direto) e confira. Corrija o que estiver errado antes de seguir.
 7. Medir: inspecionar_cena (dimensões, volume, avisos). Para impressão, confira se não há malhas abertas.
 8. Exportar: exportar_modelo (glb para web, stl para impressão, obj sem materiais).
 

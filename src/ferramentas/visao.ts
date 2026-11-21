@@ -9,6 +9,7 @@ import {
 } from "../geometria/exportar.js";
 import { renderizarCena } from "../render/renderizar.js";
 import { LIMITE_ARQUIVO_BYTES, publicarExportacao } from "../armazenamento/arquivos.js";
+import { CAMPO_FORMATO_IMAGEM, conteudoImagem } from "./imagem.js";
 import { definir, texto } from "./tipos.js";
 import { campoCenaId, carregarCena } from "./comum.js";
 
@@ -27,12 +28,13 @@ export const ferramentasVisao = [
       largura: z.number().int().min(200).max(1600).default(800),
       altura: z.number().int().min(200).max(1600).default(600),
       quadro: z.number().int().min(0).max(599).optional().describe("Quadro da animação a mostrar (sem ele, a pose do quadro 0)"),
+      formato: CAMPO_FORMATO_IMAGEM,
     },
     executar: async (a) => {
       const cena = await carregarCena(a.cena_id);
       const r = await renderizarCena(cena, a.camera, a.largura, a.altura, a.quadro);
       return [
-        { type: "image", data: r.png.toString("base64"), mimeType: "image/png" },
+        ...(await conteudoImagem(`${cena.id}-${r.camera}.png`, r.png, a.formato)),
         { type: "text", text: `Cena ${cena.id} (${cena.nome}), câmera ${r.camera}, ${r.largura}x${r.altura}` },
       ];
     },

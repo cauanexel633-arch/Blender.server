@@ -7,6 +7,7 @@ import { criarDeModelo, DESCRICOES_MODELOS, MODELOS_INTERFACE, PaletaUI, type Mo
 import { criarInterfaceUI, type InterfaceUI } from "../interface/tipos.js";
 import { ferramentasInterface } from "./interface.js";
 import { definir, texto, type Conteudo, type Ferramenta } from "./tipos.js";
+import { paraAgente } from "./imagem.js";
 
 /** O criador vê o preview (imagem) e edita, mas não apaga, não exporta e não apaga nada. */
 export const FERRAMENTAS_DO_CRIADOR = new Set([
@@ -71,7 +72,7 @@ export const ferramentasInterfaceCriador: Ferramenta[] = [
         : criarInterfaceUI(nome, largura, altura);
       await loja.salvar(base);
 
-      const ferramentas = ferramentasInterface.filter((f) => FERRAMENTAS_DO_CRIADOR.has(f.nome));
+      const ferramentas = ferramentasInterface.filter((f) => FERRAMENTAS_DO_CRIADOR.has(f.nome)).map(paraAgente);
       const instrucao =
         `Crie a interface "${nome}" (id "${base.id}", ${largura}x${altura}).\n\n` +
         `PEDIDO: ${descricao}\n` +
